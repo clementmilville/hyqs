@@ -12,6 +12,8 @@ faces that share one process:
    own, self-healing on failure, pausing when rate-limited, and resuming after a
    reboot.
 
+![A job in the Hyqs console: plan, lint, build, test, review, security and merge stages, each with its model, duration, token count and cost.](hyqs/web/frontend/public/how-it-works/screens/job-stages.jpg)
+
 ## Concept
 
 ```
@@ -23,8 +25,8 @@ Web console ──▶ router ──┬─▶ per-chat ClaudeSDKClient (persisten
                          │           └─▶ proactive reminders  (the "living" part)
                          │
   Web API job queue ─────┴─▶ pipeline runner (Postgres-backed, multi-host, resumable)
-                               QUEUED ▶ PLAN ▶ BUILD ▶ TEST ▶ REVIEW ▶ MERGE
-                                                 ╰──▶ FIX ◀──╯  (self-heal loop)
+             QUEUED ▶ PLAN ▶ BUILD ▶ LINT ▶ TEST ▶ REVIEW ▶ SECURITY ▶ MERGE ▶ DEPLOY
+                                      ╰────────▶ FIX ◀────────╯  (self-heal loop)
 ```
 
 | Layer | Where | What |
@@ -34,7 +36,7 @@ Web console ──▶ router ──┬─▶ per-chat ClaudeSDKClient (persisten
 | Skills | `hyqs/skills/` | Agent SDK skills (markdown) — the agent's know-how |
 | Memory | `hyqs/memory/` | sqlite: facts + reminders |
 | Pipeline | `hyqs/pipeline/` | The autonomous build runner, stages, and shared-Postgres job store |
-| Web | `hyqs/web/` | Starlette JSON+SSE API + React console (chat + live jobs); also serves an MCP endpoint at `<base>/mcp` for driving the job queue from an agent client — see [`deploy/README.md`](deploy/README.md#mcp-endpoint) for connection and auth details |
+| Web | `hyqs/web/` | Starlette JSON+SSE API + React console (chat + live jobs); also serves an MCP endpoint at `<base>/mcp` for driving the job queue from an agent client — see [`docs/mcp.md`](docs/mcp.md) for the tool list, connection and auth details |
 | Deploy | `deploy/` | `systemd --user` unit for 24/7 operation |
 
 ## The build pipeline
@@ -46,11 +48,17 @@ Web console ──▶ router ──┬─▶ per-chat ClaudeSDKClient (persisten
 |-------|-----|--------------|
 | **PLAN** | AI (read-only) | Inspects the repo, turns the idea into a minimal JSON plan. |
 | **BUILD** | AI (coder) | Implements the plan in an isolated git **worktree**; the runner commits it. |
+| **LINT** | Deterministic, no AI | Lockfile-sync check plus formatter/linter, scoped to the job's own diff. |
 | **TEST** | Deterministic, no AI | Detects + runs the repo's test suite (Make/pytest/npm/cargo/go), then any project-defined `.hyqs/invariants/` regression checks. |
 | **REVIEW** | AI (read-only) | Reviews the diff; emits a strict `pass`/`fail` verdict. |
+| **SECURITY** | AI (read-only) | Audits the diff for introduced vulnerabilities; a security boundary is *executed*, not just diffed. |
+| **DESIGN REVIEW** | AI (read-only) | UI changes only: checks the result against the project's design conventions. |
 | **MERGE** | Deterministic | Merges to the base branch (optional `git push`), cleans up the worktree. |
+| **DEPLOY** | Deterministic | Optional. Ships the merged commit — container build, health-gated cutover, nginx vhost. |
 
-The merge gate is strict: it only merges if **tests pass AND review says pass**.
+The merge gate is strict: a job only reaches MERGE by clearing **every** gate before
+it — lint, tests, review, security, and design review where it applies. Any one of
+them failing routes the job into FIX instead of forward.
 All git plumbing is done by the runner (not the agent), so the irreversible steps
 are predictable and auditable.
 
@@ -85,7 +93,7 @@ are predictable and auditable.
 ## Install on your own VPS
 
 ```bash
-git clone <this-repo> ~/hyqs-ai
+git clone https://github.com/clementmilville/hyqs.git ~/hyqs-ai
 cd ~/hyqs-ai
 
 # Localhost only — reach it through an SSH tunnel:
@@ -204,5 +212,10 @@ everyone with an account should be someone you'd trust with the machine. It is
 not hardened for untrusted multi-tenancy — don't run other people's
 repositories on an instance you care about.
 
-Found a security issue? Please report it privately rather than opening a public
-issue.
+Found a security issue? Please report it privately through
+[GitHub Security Advisories](https://github.com/clementmilville/hyqs/security/advisories/new)
+rather than opening a public issue. See [`SECURITY.md`](SECURITY.md).
+
+## License
+
+[MIT](LICENSE).
