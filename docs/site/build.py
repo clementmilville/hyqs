@@ -123,7 +123,7 @@ TAKES = {
     "get-started#install": "Clone into the one supported path and let the idempotent installer assemble the stack.",
     "get-started#open": "The safe default is loopback: reach the console through one SSH tunnel.",
     "get-started#agent": "The services can start without model credentials; builds cannot.",
-    "get-started#project": "Register an existing repository first; provisioning a new one adds GitHub authentication to the path.",
+    "get-started#project": "Create the project first: use the guided interview, or start blank and file one job yourself.",
     "get-started#first-job": "Start with one small, observable change and watch every gate earn the merge.",
     "get-started#operate": "Three commands cover the normal loop: inspect, update, and restart safely.",
     "pipeline#flow": "Eleven steps. The deterministic ones decide, the AI ones propose, and every failure has a named exit.",

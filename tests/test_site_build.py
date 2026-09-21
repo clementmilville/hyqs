@@ -26,6 +26,9 @@ def test_get_started_chapter_contains_supported_install_path():
     assert 'href="/how-it-works/pipeline/"' in rendered
     assert 'class="launch-path"' in rendered
     assert "Six-step Hyqs launch path" in rendered
+    assert "create your first project" in rendered
+    assert "Skip interview — blank project" in rendered
+    assert "initial wave of jobs" in rendered
 
 
 def test_get_started_is_the_final_numbered_chapter():

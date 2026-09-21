@@ -331,6 +331,18 @@ footer .wrap{display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px}
 .launch-ready li i{font-family:"IBM Plex Mono",monospace;font-style:normal;color:var(--pass)}
 .launch-ready li:nth-last-child(-n+2) i{color:var(--accent)}
 .launch-ready li b{color:var(--ink);font-weight:600}
+.project-prereq{display:grid;grid-template-columns:150px minmax(0,1fr);gap:20px;align-items:start;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:18px 20px;margin-bottom:18px}
+.project-prereq>span{padding-top:3px}.project-prereq b{color:var(--ink)}.project-prereq p{font-size:14px;color:var(--ink2);margin-top:7px}.project-prereq pre{max-width:520px}
+.project-paths{display:grid;grid-template-columns:minmax(0,1fr) 42px minmax(0,1fr);align-items:stretch}
+.project-paths article{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:22px;box-shadow:var(--shadow)}
+.project-paths article h3{margin-top:12px}.project-paths article>p{font-size:14.5px;color:var(--ink2);margin-top:7px}
+.project-paths ol{margin:18px 0;padding-left:20px;color:var(--ink2);font-size:14px}.project-paths li{margin:8px 0;padding-left:4px}
+.project-or{display:grid;place-items:center;font-family:"IBM Plex Mono",monospace;font-size:11px;text-transform:uppercase;color:var(--muted);position:relative}
+.project-or::before,.project-or::after{content:"";position:absolute;left:50%;width:1px;height:calc(50% - 20px);background:var(--line2)}
+.project-or::before{top:0}.project-or::after{bottom:0}
+.project-result{border-top:1px solid var(--line);padding-top:14px;margin-top:18px;display:grid;grid-template-columns:56px 1fr;gap:10px;font-size:13.5px;color:var(--ink2)}
+.project-result b{font-family:"IBM Plex Mono",monospace;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--accent)}
+@media (max-width:760px){.project-prereq{grid-template-columns:1fr;gap:8px}.project-paths{grid-template-columns:1fr}.project-or{height:42px}.project-or::before,.project-or::after{top:50%;height:1px;width:calc(50% - 20px)}.project-or::before{left:0}.project-or::after{left:auto;right:0}}
 .widget{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:20px 22px;box-shadow:var(--shadow)}
 .widget h4{margin-bottom:4px}
 .widget .hint{font-size:13px;color:var(--muted);margin-bottom:14px}

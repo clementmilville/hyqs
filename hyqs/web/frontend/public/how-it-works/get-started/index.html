@@ -19,17 +19,17 @@
 <section id="journey" class="reveal"><div class="wrap">
   <div class="sec-head">
     <div><div class="eyebrow">The launch path</div><h2 style="margin-top:10px">From a fresh host to the first shipped change.</h2></div>
-    <p class="lede">One host, one installer, then four deliberate hand-offs. The model never receives a credential from the installer, and deployment stays off until you choose to enable it.</p>
+    <p class="lede">One host, one installer, then four deliberate hand-offs. A project is the required bridge between the running platform and its first job; deployment stays off until you choose to enable it.</p>
   </div>
   <p class="take">Six steps from an empty host to a change that passed every gate.</p>
-  <div class="launch-visual" role="img" aria-label="Six-step Hyqs launch path: prepare a dedicated host, run the installer, open the console through an SSH tunnel or TLS, authenticate an agent, connect a project, then run the first gated job.">
+  <div class="launch-visual" role="img" aria-label="Six-step Hyqs launch path: prepare a dedicated host, run the installer, open the console through an SSH tunnel or TLS, authenticate an agent, create the first project, then run the first gated job.">
     <div class="launch-scroll">
       <ol class="launch-path">
         <li><span class="launch-num">01</span><i class="launch-icon" aria-hidden="true">⌂</i><b>Host</b><small>Dedicated<br>unprivileged user</small></li>
         <li><span class="launch-num">02</span><i class="launch-icon" aria-hidden="true">›_</i><b>Install</b><small>One script<br>idempotent</small></li>
         <li><span class="launch-num">03</span><i class="launch-icon" aria-hidden="true">◇</i><b>Console</b><small>SSH tunnel<br>or TLS</small></li>
         <li><span class="launch-num">04</span><i class="launch-icon" aria-hidden="true">✦</i><b>Agent</b><small>Claude login<br>or API key</small></li>
-        <li><span class="launch-num">05</span><i class="launch-icon" aria-hidden="true">⑂</i><b>Project</b><small>Repository<br>you control</small></li>
+        <li><span class="launch-num">05</span><i class="launch-icon" aria-hidden="true">⑂</i><b>Create project</b><small>Guided<br>or blank</small></li>
         <li><span class="launch-num">06</span><i class="launch-icon" aria-hidden="true">✓</i><b>First job</b><small>Plan to gates<br>to merge</small></li>
       </ol>
     </div>
@@ -53,7 +53,7 @@ Console: http://127.0.0.1:8787</code></pre>
         <li><i>✓</i><span>Python and frontend dependencies</span></li>
         <li><i>✓</i><span>Web and pipeline user services</span></li>
         <li><i>○</i><span><b>You:</b> authenticate an agent</span></li>
-        <li><i>○</i><span><b>You:</b> connect the first repository</span></li>
+        <li><i>○</i><span><b>You:</b> create the first project</span></li>
       </ul>
     </div>
   </div>
@@ -130,23 +130,25 @@ bash deploy/install.sh --domain hyqs.example.com \
 
 <section id="project" class="reveal alt"><div class="wrap">
   <div class="sec-head">
-    <div><div class="eyebrow">Step 4 · add a project</div><h2 style="margin-top:10px">Begin with a repository you already understand.</h2></div>
-    <p class="lede">Registering an existing repository is the shortest path to a first job. Provisioning is useful later, when you want Hyqs to create a repository, compose file, health endpoint, port, and nginx configuration from a blueprint.</p>
+    <div><div class="eyebrow">Step 4 · create your first project</div><h2 style="margin-top:10px">No project, no job queue.</h2></div>
+    <p class="lede">Every job belongs to a project and its repository. From the console, choose <strong>New Project</strong>, then take one of two paths. Both provision a private GitHub repository and open its project workspace.</p>
   </div>
-  <p class="take">Register an existing repository first; provisioning a new one adds GitHub authentication to the path.</p>
-  <ol class="runbook">
-    <li><div><b>Prepare repository access.</b><p>Make sure the service user can clone the target repository and push a branch if you want GitHub pull requests and remote merges.</p></div></li>
-    <li><div><b>Open Projects → New Project.</b><p>Choose an existing repository, enter its checkout or clone details, and keep deployment disabled for the first trial unless its runtime is already understood.</p></div></li>
-    <li><div><b>If Hyqs will provision repositories, authenticate GitHub first.</b><pre><code>gh auth login
-gh auth status</code></pre><p>The authenticated account needs permission to create repositories in the namespace selected during installation.</p></div></li>
-    <li><div><b>Review the agent roster and limits.</b><p>The defaults are enough to begin. They can later route planning, coding, review, and security to different providers and models without changing code.</p></div></li>
-  </ol>
+  <p class="take">Create the project first: use the guided interview, or start blank and file one job yourself.</p>
+  <button class="details-toggle" type="button" aria-expanded="false">Show the details</button>
+  <div class="project-prereq"><span class="launch-num">Before the console</span><div><b>Authenticate GitHub on the host</b><pre><code>gh auth login
+gh auth status</code></pre><p>The account needs permission to create repositories in the personal namespace or organization selected during installation.</p></div></div>
+  <div class="project-paths" aria-label="Two ways to create the first project">
+    <article><span class="pill ai">Guided</span><h3>Describe the product</h3><p>Let the intake interview build the project specification with you.</p><ol><li>Open <b>New Project</b> and answer the interview.</li><li>Review the live specification: name, problem, users, authentication, features, data model, and stack.</li><li>Select <b>Create project</b> when every required field is complete.</li></ol><div class="project-result"><b>Result</b><span>Repository + project + epics + an initial wave of jobs. Those jobs are filed automatically from the features you approved.</span></div></article>
+    <div class="project-or" aria-hidden="true">or</div>
+    <article><span class="pill det">Direct</span><h3>Start with a blank project</h3><p>Use this path when you want to file and observe one small first job yourself.</p><ol><li>Open <b>New Project</b>.</li><li>Select <b>Skip interview — blank project</b>.</li><li>Enter the project name and optional description, then select <b>Create blank project</b>.</li></ol><div class="project-result"><b>Result</b><span>Repository + empty project workspace. Continue to Step 5 to file the first job manually.</span></div></article>
+  </div>
+  <div class="callout ok" data-deep style="margin-top:22px"><p><strong>Ready for work:</strong> when the project workspace opens, confirm its name and repository, then leave deployment disabled for the first trial. The default agent roster and limits are enough to begin.</p></div>
 </div></section>
 
 <section id="first-job" class="reveal"><div class="wrap">
   <div class="sec-head">
     <div><div class="eyebrow">Step 5 · first job</div><h2 style="margin-top:10px">Ask for one change whose success is obvious.</h2></div>
-    <p class="lede">The best first run is small enough to inspect and meaningful enough to exercise the real gates: one behavior, one regression test, no deployment, and no broad refactor hidden inside it.</p>
+    <p class="lede">If you created a blank project in Step 4, file one small request from its Work page. If you used the guided interview, the approved features have already become jobs; choose the smallest queued one and follow it instead.</p>
   </div>
   <p class="take">Start with one small, observable change and watch every gate earn the merge.</p>
   <button class="details-toggle" type="button" aria-expanded="false">Show the details</button>
