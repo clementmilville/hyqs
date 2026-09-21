@@ -1,0 +1,106 @@
+<section id="prepare"><div class="wrap">
+  <div class="sec-head">
+    <div><div class="eyebrow">Before you begin</div><h2 style="margin-top:10px">Give Hyqs a machine it is allowed to use.</h2></div>
+    <p class="lede">Hyqs clones repositories, runs generated commands and test suites, builds containers, and can deploy applications. Install it as an unprivileged user on a dedicated host, for a closed set of people and repositories you trust.</p>
+  </div>
+  <div class="grid2">
+    <div class="card"><h4>The host</h4><ul><li>Fresh Debian or Ubuntu VPS with <code>sudo</code> and a working <code>systemd --user</code> session.</li><li>At least 4 GB RAM for one worker, swap configured, and 20 GB free disk.</li><li>SSH access as the normal user that will own and run Hyqs. Do not install as root.</li></ul></div>
+    <div class="card"><h4>The accounts</h4><ul><li>A Claude subscription or Anthropic API key for agent work.</li><li>A GitHub account only if Hyqs should create repositories or push merged changes.</li><li>Optional domain and email address if the console will be public behind nginx and Let's Encrypt.</li></ul></div>
+  </div>
+  <div class="callout" style="margin-top:22px"><p><strong>Trust boundary.</strong> Anyone who can create a project or queue work can cause repository code to run on this host. Hyqs is not hardened for untrusted multi-tenancy; do not colocate it with data or services you would not give the operator account permission to reach.</p></div>
+</div></section>
+
+<section id="install"><div class="wrap">
+  <div class="sec-head">
+    <div><div class="eyebrow">Step 1 · install</div><h2 style="margin-top:10px">Clone once. Run one idempotent installer.</h2></div>
+    <p class="lede">The installer adds system packages, uv, the Claude CLI, Python and frontend dependencies, Postgres, generated credentials, user services, and optionally nginx with TLS. If a step fails, fix the cause and run the same command again.</p>
+  </div>
+  <ol class="runbook">
+    <li><div><b>Log in as the unprivileged service user.</b><p>Use a real SSH login rather than <code>su</code>, so the user-level systemd session is available.</p></div></li>
+    <li><div><b>Clone to the canonical checkout path.</b><pre><code>git clone https://github.com/clementmilville/hyqs.git ~/hyqs-ai
+cd ~/hyqs-ai</code></pre><p>The current service units and self-release script intentionally require <code>~/hyqs-ai</code>.</p></div></li>
+    <li><div><b>Choose where provisioned repositories will live.</b><p>Add <code>--github-org acme-inc</code> to the first install command to use an organization. Omit it to use the authenticated GitHub user's personal namespace. The choice is written only on the first install because reruns never overwrite <code>.env</code>.</p></div></li>
+    <li><div><b>Choose how the console is reached, then run the installer once.</b><pre><code># Recommended first install: loopback only
+bash deploy/install.sh --github-org acme-inc
+
+# Public console: point DNS here before running
+bash deploy/install.sh --domain hyqs.example.com \
+  --email you@example.com --github-org acme-inc</code></pre><p>Remove <code>--github-org acme-inc</code> from either example if provisioned repositories should use your personal namespace.</p></div></li>
+  </ol>
+  <div class="callout ok" style="margin-top:22px"><p><strong>Done means:</strong> the installer prints the console address, first-admin credentials, MCP endpoint, and the remaining authentication steps. Keep that final output open for the next steps.</p></div>
+</div></section>
+
+<section id="open"><div class="wrap">
+  <div class="sec-head">
+    <div><div class="eyebrow">Step 2 · sign in</div><h2 style="margin-top:10px">Open the console without opening the host.</h2></div>
+    <p class="lede">Without a domain, Hyqs listens only on <code>127.0.0.1:8787</code>. That is deliberate: the console reaches an agent capable of shell and file operations.</p>
+  </div>
+  <div class="versus">
+    <div class="pr"><h4>Loopback install</h4><p>From your own computer, keep this tunnel running:</p><pre><code>ssh -L 8787:127.0.0.1:8787 \
+  hyqs@your-server</code></pre><p>Then open <a href="http://127.0.0.1:8787"><code>http://127.0.0.1:8787</code></a>.</p></div>
+    <div class="pr"><h4>Domain install</h4><p>Open the HTTPS address supplied through <code>--domain</code>. The installer verifies DNS before requesting the certificate and keeps the application port bound to loopback behind nginx.</p></div>
+  </div>
+  <ol class="steps" style="margin-top:22px">
+    <li><span>Sign in with the generated admin email and password printed by the installer and saved in <code>.install-credentials</code>.</span></li>
+    <li><span>After the first account exists, remove the bootstrap-only <code>HYQS_ADMIN_EMAIL</code> and <code>HYQS_ADMIN_PASSWORD</code> values from <code>.env</code>, then delete <code>.install-credentials</code>.</span></li>
+    <li><span>Keep account creation invite-only. OAuth matches an existing user or invitation; it never creates an account by itself.</span></li>
+  </ol>
+</div></section>
+
+<section id="agent"><div class="wrap">
+  <div class="sec-head">
+    <div><div class="eyebrow">Step 3 · authenticate the agent</div><h2 style="margin-top:10px">Give the worker a model it can call.</h2></div>
+    <p class="lede">A healthy console does not mean the pipeline can build. Agent authentication is deliberately left to the operator and never manufactured by the installer.</p>
+  </div>
+  <div class="grid2">
+    <div class="card"><h4>Claude subscription</h4><p>On the host, run the CLI once and complete its sign-in:</p><pre><code>claude</code></pre><p style="margin-top:10px">The pipeline can then use the logged-in CLI session.</p></div>
+    <div class="card"><h4>Anthropic API key</h4><p>Add the key to the installation's private environment file:</p><pre><code>ANTHROPIC_API_KEY=...</code></pre><p style="margin-top:10px">Restart the services after changing <code>.env</code>.</p></div>
+  </div>
+  <div class="callout info" style="margin-top:22px"><p><strong>Back up one value now:</strong> <code>HYQS_CREDENTIAL_ENCRYPTION_KEY</code> encrypts stored third-party credentials. If it is lost, those credentials cannot be recovered.</p></div>
+</div></section>
+
+<section id="project"><div class="wrap">
+  <div class="sec-head">
+    <div><div class="eyebrow">Step 4 · add a project</div><h2 style="margin-top:10px">Begin with a repository you already understand.</h2></div>
+    <p class="lede">Registering an existing repository is the shortest path to a first job. Provisioning is useful later, when you want Hyqs to create a repository, compose file, health endpoint, port, and nginx configuration from a blueprint.</p>
+  </div>
+  <ol class="runbook">
+    <li><div><b>Prepare repository access.</b><p>Make sure the service user can clone the target repository and push a branch if you want GitHub pull requests and remote merges.</p></div></li>
+    <li><div><b>Open Projects → New Project.</b><p>Choose an existing repository, enter its checkout or clone details, and keep deployment disabled for the first trial unless its runtime is already understood.</p></div></li>
+    <li><div><b>If Hyqs will provision repositories, authenticate GitHub first.</b><pre><code>gh auth login
+gh auth status</code></pre><p>The authenticated account needs permission to create repositories in the namespace selected during installation.</p></div></li>
+    <li><div><b>Review the agent roster and limits.</b><p>The defaults are enough to begin. They can later route planning, coding, review, and security to different providers and models without changing code.</p></div></li>
+  </ol>
+</div></section>
+
+<section id="first-job"><div class="wrap">
+  <div class="sec-head">
+    <div><div class="eyebrow">Step 5 · first job</div><h2 style="margin-top:10px">Ask for one change whose success is obvious.</h2></div>
+    <p class="lede">The best first run is small enough to inspect and meaningful enough to exercise the real gates: one behavior, one regression test, no deployment, and no broad refactor hidden inside it.</p>
+  </div>
+  <div class="band"><h4>A useful first request</h4><p class="job-prompt">Add a health endpoint that returns the application version. Cover it with a regression test, document the endpoint, and do not change deployment configuration.</p></div>
+  <ol class="steps" style="margin-top:22px">
+    <li><span><b>File the job</b> from the project's Work page and read the resolved title, scope, and epic before it starts.</span></li>
+    <li><span><b>Watch PLAN</b> turn the request into bounded stories, target files, acceptance criteria, and activation instructions.</span></li>
+    <li><span><b>Watch BUILD</b> work in an isolated git worktree. The agent edits; the deterministic runner owns commits and pull requests.</span></li>
+    <li><span><b>Read every gate</b>: lint, tests, review, security, and design review when the UI changes. A failure should enter FIX and repeat the gates, not skip them.</span></li>
+    <li><span><b>Inspect the result</b> before enabling automatic pushes or deployments for later work: diff, test evidence, findings, usage, cost, and the final commit.</span></li>
+  </ol>
+  <p class="small" style="margin-top:16px">Want the exact state machine before the first run? Continue to <a href="/how-it-works/pipeline/">The life of a job →</a></p>
+</div></section>
+
+<section id="operate"><div class="wrap">
+  <div class="sec-head">
+    <div><div class="eyebrow">Keep it running</div><h2 style="margin-top:10px">Inspect, update, and recover with the shipped controls.</h2></div>
+    <p class="lede">Hyqs runs as user services with lingering enabled, so it survives logout and reboot. Releases overlap old and new generations and only retire the old one after the replacement proves healthy.</p>
+  </div>
+  <div class="ledger">
+    <div class="pr"><h4>Console logs</h4><div><pre><code>journalctl --user -u 'hyqs-web@*' -f</code></pre></div></div>
+    <div class="pr"><h4>Pipeline logs</h4><div><pre><code>journalctl --user -u 'hyqs-pipeline@*' -f</code></pre></div></div>
+    <div class="pr"><h4>Release an update</h4><div><pre><code>cd ~/hyqs-ai
+git pull --ff-only
+bash deploy/release.sh</code></pre></div></div>
+    <div class="pr"><h4>Re-run setup</h4><div><pre><code>bash deploy/install.sh</code></pre><p>The installer is idempotent and never overwrites an existing <code>.env</code>.</p></div></div>
+  </div>
+  <div class="cta"><a class="btn primary" href="https://github.com/clementmilville/hyqs">View the source on GitHub →</a><a class="btn" href="/how-it-works/pipeline/">See every pipeline step →</a></div>
+</div></section>

@@ -37,6 +37,8 @@ h4{font-size:16px;font-weight:600}
 p{margin:0}
 a{color:var(--accent)}
 code,.mono{font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.92em}
+pre{margin:10px 0 0;padding:13px 15px;overflow-x:auto;border:1px solid var(--line);border-radius:var(--r);background:var(--ground);color:var(--ink);line-height:1.55}
+pre code{font-size:12.5px;white-space:pre}
 .eyebrow{font-family:"IBM Plex Mono",monospace;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
 .wrap{max-width:1800px;margin:0 auto;padding:0 clamp(20px,3vw,56px)}
 .prose{max-width:66ch}
@@ -293,6 +295,12 @@ footer .wrap{display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px}
 .steps li{list-style:none;display:flex;align-items:flex-start;gap:12px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;font-size:14.5px;color:var(--ink2);line-height:1.5}
 .steps li::before{counter-increment:s;content:counter(s);flex:none;font-family:"IBM Plex Mono",monospace;font-size:13px;color:var(--accent);border:1px solid var(--accent);border-radius:999px;width:26px;height:26px;display:inline-flex;align-items:center;justify-content:center}
 .steps li b{color:var(--ink)}
+.runbook{counter-reset:run;display:grid;gap:14px;margin:0;padding:0}
+.runbook li{counter-increment:run;list-style:none;display:grid;grid-template-columns:44px minmax(0,1fr);gap:14px;align-items:start;padding:18px 20px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow)}
+.runbook li::before{content:counter(run,decimal-leading-zero);font-family:"IBM Plex Mono",monospace;font-size:13px;color:var(--accent);padding-top:2px}
+.runbook li b{color:var(--ink);font-size:16px}
+.runbook li p{margin-top:5px;font-size:14.5px;color:var(--ink2)}
+.job-prompt{font-family:"IBM Plex Mono",monospace;font-size:14px!important;line-height:1.65}
 .widget{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:20px 22px;box-shadow:var(--shadow)}
 .widget h4{margin-bottom:4px}
 .widget .hint{font-size:13px;color:var(--muted);margin-bottom:14px}
