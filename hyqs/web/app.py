@@ -28,7 +28,7 @@ from sse_starlette.sse import EventSourceResponse
 from starlette.applications import Starlette
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
-from starlette.responses import JSONResponse, PlainTextResponse, Response
+from starlette.responses import JSONResponse, PlainTextResponse, RedirectResponse, Response
 from starlette.routing import Mount, Route
 from starlette.staticfiles import StaticFiles
 from starlette.types import ASGIApp
@@ -5173,6 +5173,12 @@ def build_app(config, orchestrator: Orchestrator, store: JobStore) -> ASGIApp:
     # a static-files catch-all would otherwise intercept POST /mcp before the redirect.
     routes.append(Route("/mcp", endpoint=_mcp_asgi))
     routes.append(Mount("/mcp", app=_mcp_asgi))
+
+    async def get_started(request: Request) -> RedirectResponse:
+        return RedirectResponse("/how-it-works/get-started/", status_code=308)
+
+    routes.append(Route("/get-started", get_started, methods=["GET"]))
+    routes.append(Route("/get-started/", get_started, methods=["GET"]))
 
     # Serve the built SPA if present; otherwise a helpful placeholder.
     if FRONTEND_DIST.is_dir():

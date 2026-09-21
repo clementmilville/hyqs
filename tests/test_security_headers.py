@@ -71,3 +71,15 @@ def test_static_asset_response_carries_security_headers(store, tmp_path, monkeyp
     for name, value in _EXPECTED_HEADERS.items():
         assert resp.headers[name] == value
     assert "content-security-policy-report-only" in resp.headers
+
+
+def test_get_started_redirects_to_public_install_chapter(tmp_path):
+    client = _make_client(MagicMock(), tmp_path)
+
+    for path in ("/get-started", "/get-started/"):
+        resp = client.get(path, follow_redirects=False)
+
+        assert resp.status_code == 308
+        assert resp.headers["location"] == "/how-it-works/get-started/"
+        for name, value in _EXPECTED_HEADERS.items():
+            assert resp.headers[name] == value
