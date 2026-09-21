@@ -26,6 +26,17 @@ def test_get_started_chapter_contains_supported_install_path():
     assert 'href="/how-it-works/pipeline/"' in rendered
 
 
+def test_get_started_is_the_final_numbered_chapter():
+    site_build = _load_site_build()
+
+    assert site_build.CHAPTERS[-1][0] == "get-started"
+    rendered = site_build.page(len(site_build.CHAPTERS) - 1)
+
+    assert "Chapter 10 of 10" in rendered
+    assert "<b>10</b>Get started" in rendered
+    assert "Next chapter" not in rendered
+
+
 def test_cover_links_to_install_guide_and_public_source():
     site_build = _load_site_build()
 

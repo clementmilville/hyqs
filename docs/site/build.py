@@ -45,13 +45,6 @@ CHAPTERS = [
         "Hyqs: the autonomous SDLC pipeline that plans, builds, tests, reviews, secures, merges and deploys on its own, and leaves evidence at every step. Production grade for regulated industries.",
     ),
     (
-        "get-started",
-        "Start",
-        "Get started",
-        "How do I install Hyqs and ship the first change?",
-        "A step-by-step path from a fresh Debian or Ubuntu host to a running Hyqs console and a first gated software change.",
-    ),
-    (
         "pipeline",
         "Pipeline",
         "The life of a job",
@@ -113,6 +106,13 @@ CHAPTERS = [
         "Reference",
         "Every setting, tool, key, price and permission, in one place.",
         "Lookup tables for the Hyqs pipeline: settings explorer, tool policies, MCP catalogue, deploy configuration, prices and the permission matrix.",
+    ),
+    (
+        "get-started",
+        "Get started",
+        "Get started",
+        "How do I install Hyqs and ship the first change?",
+        "A step-by-step path from a fresh Debian or Ubuntu host to a running Hyqs console and a first gated software change.",
     ),
 ]
 
@@ -248,7 +248,7 @@ def rail(active: str) -> str:
             continue
         href = BASE if slug == "" else f"{BASE}{slug}/"
         cls = "chap on" if slug == active else "chap"
-        num = "" if i < 2 else f"<b>{i - 1}</b>"
+        num = f"<b>{i}</b>"
         items.append(f'<a class="{cls}" href="{href}">{num}{html.escape(label)}</a>')
     return (
         '<div class="progress" aria-hidden="true"><i></i></div>'
@@ -375,18 +375,10 @@ def page(idx: int) -> str:
     body = body.replace("{{BYLINE_FOOTER}}", byline_footer())
     page_js = f"<script>\n{js_path.read_text()}\n</script>" if js_path.exists() else ""
     hero = ""
-    if slug == "get-started":
+    if idx > 0:
         hero = (
             '<header class="chapter-hero"><div class="wrap">'
-            '<div class="eyebrow">Install · configure · first job</div>'
-            f'<h1 style="margin-top:12px">{html.escape(title)}</h1>'
-            f'<p class="lede">{html.escape(question)}</p>'
-            "</div></header>"
-        )
-    elif idx > 1:
-        hero = (
-            '<header class="chapter-hero"><div class="wrap">'
-            f'<div class="eyebrow">Chapter {idx - 1} of {len(CHAPTERS) - 2}</div>'
+            f'<div class="eyebrow">Chapter {idx} of {len(CHAPTERS) - 1}</div>'
             f'<h1 style="margin-top:12px">{html.escape(title)}</h1>'
             f'<p class="lede">{html.escape(question)}</p>'
             "</div></header>"
