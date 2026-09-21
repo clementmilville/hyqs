@@ -107,10 +107,25 @@ CHAPTERS = [
         "Every setting, tool, key, price and permission, in one place.",
         "Lookup tables for the Hyqs pipeline: settings explorer, tool policies, MCP catalogue, deploy configuration, prices and the permission matrix.",
     ),
+    (
+        "get-started",
+        "Get started",
+        "Get started",
+        "How do I install Hyqs and ship the first change?",
+        "A step-by-step path from a fresh Debian or Ubuntu host to a running Hyqs console and a first gated software change.",
+    ),
 ]
 
 # One takeaway sentence per section, keyed "slug#section-id". Shown in Skim mode and on slides.
 TAKES = {
+    "get-started#journey": "Six steps from an empty host to a change that passed every gate.",
+    "get-started#prepare": "One dedicated host, one unprivileged operator, and repositories you trust.",
+    "get-started#install": "Clone into the one supported path and let the idempotent installer assemble the stack.",
+    "get-started#open": "The safe default is loopback: reach the console through one SSH tunnel.",
+    "get-started#agent": "The services can start without model credentials; builds cannot.",
+    "get-started#project": "Create the project first: use the guided interview, or start blank and file one job yourself.",
+    "get-started#first-job": "Start with one small, observable change and watch every gate earn the merge.",
+    "get-started#operate": "Three commands cover the normal loop: inspect, update, and restart safely.",
     "pipeline#flow": "Eleven steps. The deterministic ones decide, the AI ones propose, and every failure has a named exit.",
     "pipeline#gates": "A job is judged on the files it changed, never on the repository's old debt. That is why the fix loop converges.",
     "pipeline#heal": "Every retry has its own budget, and none of them can spend another's.",
@@ -206,8 +221,24 @@ STORY = {
 }
 
 DEEP_BLOCKS = (
-    "tbl", "grid2", "grid3", "card", "callout", "ctlmap", "honest", "matrix", "qa", "budgets", "catch", "bars",
-    "principles", "versus", "ticker", "limits", "band", "ledger",
+    "tbl",
+    "grid2",
+    "grid3",
+    "card",
+    "callout",
+    "ctlmap",
+    "honest",
+    "matrix",
+    "qa",
+    "budgets",
+    "catch",
+    "bars",
+    "principles",
+    "versus",
+    "ticker",
+    "limits",
+    "band",
+    "ledger",
 )
 
 
@@ -218,7 +249,7 @@ def rail(active: str) -> str:
             continue
         href = BASE if slug == "" else f"{BASE}{slug}/"
         cls = "chap on" if slug == active else "chap"
-        num = "" if i < 2 else f"<b>{i - 1}</b>"
+        num = f"<b>{i}</b>"
         items.append(f'<a class="{cls}" href="{href}">{num}{html.escape(label)}</a>')
     return (
         '<div class="progress" aria-hidden="true"><i></i></div>'
@@ -345,10 +376,10 @@ def page(idx: int) -> str:
     body = body.replace("{{BYLINE_FOOTER}}", byline_footer())
     page_js = f"<script>\n{js_path.read_text()}\n</script>" if js_path.exists() else ""
     hero = ""
-    if idx > 1:
+    if idx > 0:
         hero = (
             '<header class="chapter-hero"><div class="wrap">'
-            f'<div class="eyebrow">Chapter {idx - 1} of {len(CHAPTERS) - 2}</div>'
+            f'<div class="eyebrow">Chapter {idx} of {len(CHAPTERS) - 1}</div>'
             f'<h1 style="margin-top:12px">{html.escape(title)}</h1>'
             f'<p class="lede">{html.escape(question)}</p>'
             "</div></header>"
