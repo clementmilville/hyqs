@@ -24,6 +24,8 @@ def test_get_started_chapter_contains_supported_install_path():
     assert "git clone https://github.com/clementmilville/hyqs.git ~/hyqs-ai" in rendered
     assert "ssh -L 8787:127.0.0.1:8787" in rendered
     assert 'href="/how-it-works/pipeline/"' in rendered
+    assert 'class="launch-path"' in rendered
+    assert "Six-step Hyqs launch path" in rendered
 
 
 def test_get_started_is_the_final_numbered_chapter():

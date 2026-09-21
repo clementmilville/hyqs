@@ -1,3 +1,45 @@
+<section id="journey"><div class="wrap">
+  <div class="sec-head">
+    <div><div class="eyebrow">The launch path</div><h2 style="margin-top:10px">From a fresh host to the first shipped change.</h2></div>
+    <p class="lede">One host, one installer, then four deliberate hand-offs. The model never receives a credential from the installer, and deployment stays off until you choose to enable it.</p>
+  </div>
+  <div class="launch-visual" role="img" aria-label="Six-step Hyqs launch path: prepare a dedicated host, run the installer, open the console through an SSH tunnel or TLS, authenticate an agent, connect a project, then run the first gated job.">
+    <div class="launch-scroll">
+      <ol class="launch-path">
+        <li><span class="launch-num">01</span><i class="launch-icon" aria-hidden="true">⌂</i><b>Host</b><small>Dedicated<br>unprivileged user</small></li>
+        <li><span class="launch-num">02</span><i class="launch-icon" aria-hidden="true">›_</i><b>Install</b><small>One script<br>idempotent</small></li>
+        <li><span class="launch-num">03</span><i class="launch-icon" aria-hidden="true">◇</i><b>Console</b><small>SSH tunnel<br>or TLS</small></li>
+        <li><span class="launch-num">04</span><i class="launch-icon" aria-hidden="true">✦</i><b>Agent</b><small>Claude login<br>or API key</small></li>
+        <li><span class="launch-num">05</span><i class="launch-icon" aria-hidden="true">⑂</i><b>Project</b><small>Repository<br>you control</small></li>
+        <li><span class="launch-num">06</span><i class="launch-icon" aria-hidden="true">✓</i><b>First job</b><small>Plan to gates<br>to merge</small></li>
+      </ol>
+    </div>
+    <p class="flow-hint">↔ On a narrow screen, drag the launch path sideways.</p>
+    <div class="launch-choice" aria-label="Console access choices"><span>Console access</span><b>Local first · SSH tunnel</b><i>or</i><b>Public · nginx + TLS</b></div>
+  </div>
+  <div class="launch-lower">
+    <div class="terminal-card">
+      <div class="terminal-bar"><span aria-hidden="true"><i></i><i></i><i></i></span><b>hyqs@host</b></div>
+      <pre><code><span class="terminal-prompt">$</span> git clone https://github.com/clementmilville/hyqs.git ~/hyqs-ai
+<span class="terminal-prompt">$</span> cd ~/hyqs-ai
+<span class="terminal-prompt">$</span> bash deploy/install.sh
+
+<span class="terminal-ok">✓ Hyqs is installed.</span>
+Console: http://127.0.0.1:8787</code></pre>
+    </div>
+    <div class="launch-ready">
+      <div class="eyebrow">What the installer completes</div>
+      <ul>
+        <li><i>✓</i><span>Postgres and generated credentials</span></li>
+        <li><i>✓</i><span>Python and frontend dependencies</span></li>
+        <li><i>✓</i><span>Web and pipeline user services</span></li>
+        <li><i>○</i><span><b>You:</b> authenticate an agent</span></li>
+        <li><i>○</i><span><b>You:</b> connect the first repository</span></li>
+      </ul>
+    </div>
+  </div>
+</div></section>
+
 <section id="prepare"><div class="wrap">
   <div class="sec-head">
     <div><div class="eyebrow">Before you begin</div><h2 style="margin-top:10px">Give Hyqs a machine it is allowed to use.</h2></div>

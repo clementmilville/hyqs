@@ -118,6 +118,7 @@ CHAPTERS = [
 
 # One takeaway sentence per section, keyed "slug#section-id". Shown in Skim mode and on slides.
 TAKES = {
+    "get-started#journey": "Six steps from an empty host to a change that passed every gate.",
     "get-started#prepare": "One dedicated host, one unprivileged operator, and repositories you trust.",
     "get-started#install": "Clone into the one supported path and let the idempotent installer assemble the stack.",
     "get-started#open": "The safe default is loopback: reach the console through one SSH tunnel.",
