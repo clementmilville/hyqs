@@ -1,0 +1,66 @@
+[Unit]
+Description=Hyqs build pipeline worker (autonomous /build runner)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+# --- EDIT ME ---------------------------------------------------------------
+# Same checkout as the chat daemon: the worker shares its Postgres (HYQS_DB_URL).
+WorkingDirectory=%h
+# Absolute path to uv: systemd's ExecStart binary lookup doesn't use the
+# Environment= PATH below, so `uv` alone fails with status=203/EXEC.
+ExecStart=%h/.local/bin/uv run hyqs-pipeline
+# ---------------------------------------------------------------------------
+
+Environment=PATH=%h/.local/bin:/usr/local/bin:/usr/bin:/bin
+# Keep it alive: restart on any exit, but back off if it crash-loops.
+Restart=always
+RestartSec=5
+StartLimitIntervalSec=60
+StartLimitBurst=5
+
+# Signal meanings (see hyqs/pipeline/__main__.py): systemd's default stop
+# signal is SIGTERM, which this process now treats as a graceful drain with a
+# LONG ceiling (HYQS_PIPELINE_DEPLOY_DRAIN_TIMEOUT, default 2400s) so an
+# in-flight release (`systemctl stop`/restart) never kills a mid-flight stage.
+# A second SIGTERM forces an immediate stop. SIGUSR1 (sent manually, or by
+# deploy/release.sh for overlapping-fleet replacement) is a shorter manual
+# drain (HYQS_PIPELINE_DRAIN_TIMEOUT, default 300s). TimeoutStopSec must clear
+# the long ceiling so systemd doesn't SIGKILL mid-drain.
+TimeoutStopSec=2460
+
+# Default KillMode=control-group sends SIGTERM to EVERY process in this
+# unit's cgroup on `systemctl stop`, including in-flight claude CLI
+# subprocesses the SDK spawns for plan/build/fix — those raced the worker's
+# graceful-drain loop (job #627) and got TERM'd out from under it. Observed
+# 2026-07-12: job #543's plan agent died with exit 143 one second after the
+# worker logged "SIGTERM received; draining in-flight work". KillMode=mixed
+# sends SIGTERM only to this main process; cgroup survivors are SIGKILL'd
+# only after TimeoutStopSec above, which already exceeds the drain ceiling.
+# Gate-stage subprocesses (lint/test/import-smoke) run in their own
+# transient systemd-run scopes, NOT in this unit's cgroup — KillMode does
+# not (and cannot) protect them, so don't drop those scopes assuming it does.
+KillMode=mixed
+
+# Cgroup memory caps: on 2026-07-25 a single worker leaked to 16.4G then
+# 16.6G (of 22G total host RAM), got kernel-OOM-killed twice in 25 minutes,
+# and starved Postgres/Docker/the OS badly enough to force a hard VPS
+# restart. These caps make the kernel contain a leak to this unit's own
+# cgroup instead. Sizing: host has 22G/8 cores; MemoryMax=14G leaves ~8G
+# headroom for Postgres, Docker containers (acme, metrics-app,
+# ledger-app, registry, etc.), and page cache — the same services that
+# got starved. MemoryHigh=10G is a soft throttle point (reclaim/pressure)
+# so a slow leak degrades before it gets killed. No MemorySwapMax here;
+# swap availability is handled separately, out of band.
+MemoryAccounting=yes
+MemoryHigh=10G
+MemoryMax=14G
+
+# Logs go to the journal: `journalctl --user -u hyqs-pipeline -f`.
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=hyqs-pipeline
+
+[Install]
+WantedBy=default.target

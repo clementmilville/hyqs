@@ -1,0 +1,31 @@
+[Unit]
+Description=Hyqs web console (Starlette JSON+SSE API + React UI)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+# --- EDIT ME ---------------------------------------------------------------
+# Same checkout as the pipeline worker; serves the console on HYQS_WEB_PORT
+# (default 8787). Runs standalone — no Telegram token needed.
+WorkingDirectory=%h/hyqs-ai
+# Absolute path to uv: systemd's ExecStart binary lookup doesn't use the
+# Environment= PATH below, so `uv` alone fails with status=203/EXEC.
+ExecStart=%h/.local/bin/uv run hyqs-web
+# ---------------------------------------------------------------------------
+
+Environment=PATH=%h/.local/bin:/usr/local/bin:/usr/bin:/bin
+
+# Keep it alive: restart on any exit, but back off if it crash-loops.
+Restart=always
+RestartSec=5
+StartLimitIntervalSec=60
+StartLimitBurst=5
+
+# Logs go to the journal: `journalctl --user -u hyqs-web -f`.
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=hyqs-web
+
+[Install]
+WantedBy=default.target

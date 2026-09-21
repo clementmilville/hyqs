@@ -1,0 +1,59 @@
+<header class="cover"><div class="wrap">
+  <div class="cover-grid">
+    <div class="cover-copy">
+      <div class="logo" aria-label="Hyqs">
+        <svg viewBox="0 0 64 64" width="56" height="56" role="img" aria-label="Hyqs logo: a diamond gate with a token passing through"><rect x="14" y="14" width="36" height="36" rx="8" transform="rotate(45 32 32)" fill="none" stroke="var(--accent)" stroke-width="4"/><path d="M21 32h22" stroke="var(--accent)" stroke-width="4" stroke-linecap="round"/><circle cx="32" cy="32" r="4" fill="var(--ink)"/></svg>
+        <span>Hyqs</span>
+      </div>
+      <h1>Software that ships itself, and can prove it.</h1>
+      <p class="lede">Hyqs takes a written change request and plans, builds, tests, reviews, secures, merges and deploys it on its own. AI proposes at three points. Deterministic code decides at every gate and performs every irreversible action. Every job leaves an audit trail.</p>
+      <div class="cta">
+        <a class="btn primary" href="/how-it-works/pipeline/">Start the tour →</a>
+        <a class="btn" href="/how-it-works/deck/">See the deck →</a>
+      </div>
+    </div>
+    <figure class="cover-art">
+      <canvas id="flowArt" width="1200" height="640" aria-hidden="true"></canvas>
+      <svg class="art-fallback" viewBox="0 0 1200 640" role="img" aria-label="Changes flowing left to right through five gates; most pass, some are sent back to a fix lane and re-enter"></svg>
+      <figcaption>Changes flow through five gates. Most pass. Some are sent back to fix and re-enter. Nothing lands that a gate refused.</figcaption>
+    </figure>
+  </div>
+</div></header>
+
+<section id="figures" class="cover-figures"><div class="wrap">
+  <div class="figs four" aria-label="Live production figures">
+    <div class="fig"><b>2,673</b><small>changes shipped in 68 days by a team of 4, across 6 products. 61% landed at night or on a weekend</small></div>
+    <div class="fig"><b>2,294</b><small>times a gate stopped a change before merge. 395 of those were the security gate</small></div>
+    <div class="fig"><b>881</b><small>shipped changes that failed a gate first and repaired themselves, no human in the loop</small></div>
+    <div class="fig"><b>$3.69</b><small>all-in model cost per shipped change. Median $2.41, median 35 minutes from request to live</small></div>
+  </div>
+  <p class="figs-note">Read from the pipeline's own database ledger on 6 September 2026; 744 of those changes were Hyqs shipping improvements to itself.</p>
+  </div></section>
+
+<section id="features" class="cover-features"><div class="wrap">
+  <div class="feat-grid">
+    <a href="/how-it-works/pipeline/"><b>Plans and builds</b><span>in isolated worktrees, one pull request per change</span></a>
+    <a href="/how-it-works/pipeline/#gates"><b>Five gates, fail-closed</b><span>lint, tests, review, security scanners, design</span></a>
+    <a href="/how-it-works/pipeline/#heal"><b>Heals itself, within budgets</b><span>every retry capped, every exit named</span></a>
+    <a href="/how-it-works/workers/"><b>Your database, your hosts</b><span>no broker, workers on any machine, one elected supervisor</span></a>
+    <a href="/how-it-works/evidence/"><b>Evidence by construction</b><span>stage events, cost ledger, database-level audit log, decision records</span></a>
+    <a href="/how-it-works/economics/"><b>$3.69 per shipped change</b><span>median 35 minutes from request to live</span></a>
+  </div>
+  <div class="reg-line">
+    <div class="eyebrow">Production grade for regulated industries</div>
+    <p>Segregation of duties enforced by tool policy, not by prompt. A reviewer that cannot write. An audit log written by the database, with columns the application cannot forge. Releases signed and promoted by digest. Limits stated before you find them.</p>
+    <a href="/how-it-works/regulated/">The control map →</a>
+  </div>
+  <div class="eyebrow" style="margin-top:48px">The tour · nine chapters, each answering one question</div>
+  <div class="toc" style="margin-top:14px">
+    <a href="/how-it-works/pipeline/"><span class="n">01</span><b>The life of a job</b><p>Eleven steps, four loops, every exit named. Click any stage, or play a sample job.</p></a>
+    <a href="/how-it-works/workers/"><span class="n">02</span><b>Workers and the control plane</b><p>Executors, the elected supervisor, the deployer, the agent roster.</p></a>
+    <a href="/how-it-works/intake/"><span class="n">03</span><b>Getting work in</b><p>Five ways to file a job, the intake interview, the architect, MCP, CLI and Slack.</p></a>
+    <a href="/how-it-works/console/"><span class="n">04</span><b>The console</b><p>A screen-by-screen tour, from the work lanes to the audit log.</p></a>
+    <a href="/how-it-works/evidence/"><span class="n">05</span><b>Evidence and governance</b><p>What every job records, the database-level audit trail, roles, and what an auditor can ask.</p></a>
+    <a href="/how-it-works/economics/"><span class="n">06</span><b>Economics</b><p>The cost ledger, where the tokens go, a calculator, and the report that audits its own meter.</p></a>
+    <a href="/how-it-works/deploy/"><span class="n">07</span><b>Deployment and operations</b><p>Probe-first cutover, environments and promotions, signing, secrets, runtime controls.</p></a>
+    <a href="/how-it-works/regulated/"><span class="n">08</span><b>For regulated industries</b><p>The controls a bank asks for, mapped to the mechanisms, limits first.</p></a>
+    <a href="/how-it-works/reference/"><span class="n">09</span><b>Reference</b><p>Every setting, tool, key, price and permission, in one place.</p></a>
+  </div>
+</div></section>

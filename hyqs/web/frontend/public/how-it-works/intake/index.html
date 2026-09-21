@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="The five ways a job is filed, the intake interview, ideation and the architect, MCP, the CLI and Slack threads.">
+<meta name="robots" content="noindex">
+<meta name="color-scheme" content="light dark">
+<title>Getting work in</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,300..800&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="/how-it-works/assets/site.css">
+<script>try{var t=localStorage.getItem("hyqs-site-theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t);}catch(e){}</script>
+</head>
+<body data-read="skim" data-chapter="intake">
+<div class="progress" aria-hidden="true"><i></i></div><div class="rail"><div class="wrap"><a class="brand" href="/how-it-works/"><i></i>Hyqs</a><nav aria-label="Chapters"><a class="chap" href="/how-it-works/pipeline/">Pipeline</a><a class="chap" href="/how-it-works/workers/"><b>1</b>Workers</a><a class="chap on" href="/how-it-works/intake/"><b>2</b>Intake</a><a class="chap" href="/how-it-works/console/"><b>3</b>Console</a><a class="chap" href="/how-it-works/evidence/"><b>4</b>Evidence</a><a class="chap" href="/how-it-works/economics/"><b>5</b>Economics</a><a class="chap" href="/how-it-works/deploy/"><b>6</b>Deploy</a><a class="chap" href="/how-it-works/regulated/"><b>7</b>Regulated</a><a class="chap" href="/how-it-works/reference/"><b>8</b>Reference</a></nav><div class="ctl" role="group" aria-label="Reading mode"><button class="mode" data-mode="skim" aria-pressed="true" title="One takeaway per section; open details where you want them">Skim</button><button class="mode" data-mode="deep" aria-pressed="false" title="Everything unfolded">Deep</button><a class="present" href="/how-it-works/deck/" title="A fourteen-slide summary that stands on its own">Deck</a><button class="theme" id="themeBtn" title="Switch between light and dark" aria-label="Switch theme">☾</button></div></div></div>
+<header class="chapter-hero"><div class="wrap"><div class="eyebrow">Chapter 2 of 8</div><h1 style="margin-top:12px">Getting work in</h1><p class="lede">How does work enter the system, and how do people steer it?</p></div></header>
+<aside class="story" aria-label="One job, followed across chapters"><div class="wrap"><div class="story-head"><span class="eyebrow">Follow one change · job #4244</span><a class="small" href="/how-it-works/console/">see it in the console →</a></div><div class="strip"><span class="chip on"><b>Filed</b><small>19:42</small></span><span class="chip"><b>Claimed</b><small>19:59</small></span><span class="chip"><b>Plan</b><small>2 min</small></span><span class="chip"><b>Build</b><small>9 min</small></span><span class="chip"><b>Lint</b><small>5 s</small></span><span class="chip"><b>Test</b><small>11 s</small></span><span class="chip"><b>Review</b><small>pass</small></span><span class="chip"><b>Security</b><small>✗ stop</small></span><span class="chip"><b>Fix</b><small>2 min</small></span><span class="chip"><b>Re-verify</b><small>✓ ✓ ✓</small></span><span class="chip"><b>Merge</b><small>20:18</small></span><span class="chip"><b>Deploy</b><small>20:19</small></span><span class="chip"><b>Live</b><small>20:19:53</small></span></div><p>#4244 came through the MCP door at 19:42:55, filed from a Claude session on the owner's behalf with an idempotency key and a remediation-safe title. It waited 16 minutes behind other work before a slot was free.</p></div></aside>
+<section id="sources" class="reveal"><div class="wrap">
+  <div class="sec-head">
+    <div><div class="eyebrow">Five doors</div><h2 style="margin-top:10px">Every job records which door it came through and who opened it.</h2></div>
+    <p class="lede">A job carries its source, the acting user and a metadata blob from the moment it is filed. The console, the command line, an MCP client such as Claude.ai or Claude Code, the structured intake interview, and the supervisor itself are the five sources. Nothing enters unattributed.</p>
+  </div>
+  <p class="take">Five doors, one rule: every job knows who filed it and how.</p>
+  <button class="details-toggle" type="button" aria-expanded="false">Show the details</button>
+  <div class="tbl" data-deep><table>
+    <thead><tr><th>Source</th><th>Path</th><th>What the path adds</th><th>Permission</th></tr></thead>
+    <tbody>
+      <tr><td>Console</td><td><span class="mono">POST /api/jobs</span></td><td>A 10-second duplicate window returns the existing job instead of a twin. Epic resolution: explicit, inline new epic, or an AI classifier that picks or proposes an epic and can never block filing. Client address, browser and role are recorded.</td><td>queue_job</td></tr>
+      <tr><td>Console wave</td><td><span class="mono">POST /api/jobs/batch</span></td><td>Several jobs at once. Dependencies given as indexes into the batch, cycle-checked. Jobs whose declared file scopes overlap are auto-chained so hot files are never edited concurrently; the edges are tagged <em>auto</em> and reduced transitively. All or nothing.</td><td>queue_job</td></tr>
+      <tr><td>MCP</td><td><span class="mono">create_job</span>, <span class="mono">create_job_wave</span></td><td>Everything above plus an idempotency key per project, so a client can retry on any cadence, and remediation semantics: a job filed as a fix for an incident is registered as its active remediation and rejected if another one is already open.</td><td>queue_job</td></tr>
+      <tr><td>Intake</td><td>the project interview</td><td>Seeds a whole project: one epic per theme, one job per feature, foundation work first and everything else waiting on it.</td><td>create_project</td></tr>
+      <tr><td>Supervisor</td><td>the janitor</td><td>Files gate-fix, deploy fix-forward and migration-merge jobs autonomously, under per-project caps, and splits oversized plans into chained child jobs.</td><td>system</td></tr>
+    </tbody>
+  </table></div>
+</div></section>
+
+<section id="interview" class="reveal alt"><div class="wrap">
+  <div class="sec-head">
+    <div><div class="eyebrow">The intake interview</div><h2 style="margin-top:10px">AI converses. Deterministic code decides when a project is ready.</h2></div>
+    <p class="lede">A new project starts as a structured conversation with an interviewer that has no repository and cannot write code. It fills a specification through six phases. Whether the specification is complete is decided by code that checks nine fields, not by the model saying it is done.</p>
+  </div>
+  <p class="take">The interviewer talks; a nine-field check in code decides when a project is ready.</p>
+  <button class="details-toggle" type="button" aria-expanded="false">Show the details</button>
+  <div class="tour phases" data-tour>
+    <div class="list" role="tablist">
+      <button role="tab" data-shot="" data-alt="Vision" data-cap="<b>Phase 1 · Vision.</b> Name, slug, one-line pitch, the problem, the users. The interviewer opens with a hard boundary: it never writes code, scaffolds or asks about hosting; if asked to build, it explains the system will do that automatically.">Vision<small>name, problem, users</small></button>
+      <button role="tab" data-shot="" data-alt="Auth" data-cap="<b>Phase 2 · Auth and access.</b> Always elicited explicitly, even when the answer is none. Every feature captured later carries a theme, and Auth &amp; Access is one of the two foundation themes that seed first.">Auth and access<small>always asked</small></button>
+      <button role="tab" data-shot="" data-alt="Features" data-cap="<b>Phase 3 · Features.</b> Capture what the user says, never invent scope. Then, opt-in, three to five suggestions the user accepts one by one. Each feature is title, description, acceptance criteria, theme and source (user or suggested).">Features<small>capture, then suggest</small></button>
+      <button role="tab" data-shot="" data-alt="Data" data-cap="<b>Phase 4 · Data and integrations.</b> The data model and the external systems. Data &amp; Model is the second foundation theme.">Data and integrations<small>model, external systems</small></button>
+      <button role="tab" data-shot="" data-alt="Constraints" data-cap="<b>Phase 5 · Constraints.</b> Non-goals, non-functional requirements, open questions. These land in the specification and are visible to every planner afterwards.">Constraints<small>non-goals, open questions</small></button>
+      <button role="tab" data-shot="" data-alt="Review" data-cap="<b>Phase 6 · Review.</b> The draft grouped by theme. Confirm re-runs the completeness gate on the server: name, slug, one-liner, problem, users, auth, features, data model, stack must all be non-empty or the confirmation is refused with the missing list.">Review and confirm<small>the nine-field gate</small></button>
+    </div>
+    <figure class="phase-cap"><figcaption></figcaption></figure>
+  </div>
+  <figure class="shot compact" style="margin-top:22px"><img src="/how-it-works/screens/intake.jpg" alt="The new-project intake screen with its six-phase stepper" loading="lazy"><figcaption><b>The screen.</b> Phase stepper on the left, the streaming conversation in the middle, the live draft specification with its filled-over-required counter on the right.</figcaption></figure>
+  <div class="ledger" data-deep style="margin-top:22px">
+    <div class="pr"><h4>How the model talks to the code</h4><p>The interviewer emits machine-readable blocks the user never sees: specification updates as JSON patches deep-merged into the draft, a phase marker, and a completion marker. The completion marker is necessary but never sufficient; the nine-field check has the last word.</p></div>
+    <div class="pr"><h4>What confirming does</h4><p>Pure deterministic seeding, no model call: provision the repository from the chosen blueprint, create a private GitHub repository, then one epic per theme and one job per feature. Foundation themes get priority 20 and no dependencies; every other job depends on all of them and gets priority 10 if the user asked for it, 5 if it was a suggestion.</p></div>
+    <div class="pr"><h4>Resumable by design</h4><p>Sessions persist with their draft, messages and status, so an interview can be paused for a week. The screen offers resume or start fresh, shows per-session progress, and has an escape hatch: skip the interview and create a blank project.</p></div>
+  </div>
+</div></section>
+
+<section id="ideate" class="reveal"><div class="wrap">
+  <div class="sec-head">
+    <div><div class="eyebrow">From idea to a chained wave</div><h2 style="margin-top:10px">The AI proposes. A human clicks to file. The queue never takes orchestration advice.</h2></div>
+    <p class="lede">Three surfaces turn intent into jobs, and all three share one rule: the model cannot file anything. It proposes a list, the person reviews and creates it, and from then on the deterministic queue, dependency gate and collision serialisation own the order.</p>
+  </div>
+  <p class="take">The model proposes a job graph, a person clicks to file, and the queue takes no advice from either.</p>
+  <button class="details-toggle" type="button" aria-expanded="false">Show the details</button>
+  <div class="principles" data-deep>
+    <div class="pr"><h4>Job chat</h4><p>Two modes. Diagnose: root-cause with at least one file and line citation before proposing. Feature: state the trade-offs first. Every proposed job must carry two meaningfully different alternatives, an epic, and its dependencies. The model is told bluntly it cannot file and must never say "I've filed those".</p></div>
+    <div class="pr"><h4>Backlog refine</h4><p>Anyone with the propose permission can add backlog items and vote; changing their status needs the triage permission. Refining selected items runs the same contract, at most eight jobs, deduplicating overlapping asks. Filing the wave marks the source items converted and links them, so any job can name the backlog items behind it.</p></div>
+    <div class="pr"><h4>Architect</h4><p>One epic plus a goal in, a job graph out: at most ten jobs, each self-contained with a "done when" clause, narrow allowed paths, a rationale for the shape of the graph. It is grounded in the project's symbol index and the last fifteen decision records. Its own words: "You only draw the map."</p></div>
+  </div>
+  <figure class="shot compact" style="margin-top:22px"><img src="/how-it-works/screens/epic-architect.jpg" alt="The Architect tab of an epic before a run" loading="lazy"><figcaption><b>Architect, at rest.</b> After a run, the proposed jobs are laid out by dependency depth into steps, each with its file scope and its dependencies, and a single "Create selected" button files them as one atomic wave.</figcaption></figure>
+</div></section>
+
+<section id="mcp" class="reveal alt"><div class="wrap">
+  <div class="sec-head">
+    <div><div class="eyebrow">MCP</div><h2 style="margin-top:10px">Thirty-eight tools, the same permission checks as the console.</h2></div>
+    <p class="lede">The Model Context Protocol endpoint lets Claude.ai, Claude Code or any automation client drive the pipeline. Interactive users sign in with Google through OAuth 2.1; automation presents a project-scoped API token. Every tool resolves the caller and applies the same membership and permission rules as the console, returning a forbidden error rather than raising.</p>
+  </div>
+  <p class="take">Claude.ai, Claude Code or a script drive the same API under the same permissions as the console.</p>
+  <button class="details-toggle" type="button" aria-expanded="false">Show the details</button>
+  <p class="small">The full catalogue of 38 tools with their permissions is in the <a href="/how-it-works/reference/#mcp">Reference</a>.</p>
+  <div class="versus" data-deep style="margin-top:22px">
+    <div class="pr"><h4>Connecting an organisation</h4><ul><li><strong>People:</strong> add the endpoint as a remote MCP server in Claude.ai or Claude Code. An OAuth proxy terminates Google sign-in and adds the dynamic registration and resource metadata that Google lacks. Unknown or inactive users get nothing; there is no auto-provisioning.</li><li><strong>Automation:</strong> a project API token, stored as a hash, valid for exactly one project and role.</li><li><strong>Command line:</strong> <span class="mono">hyqs-jobs</span> wraps the same tools with exit codes for ok, tool error, transport, forbidden and not found, and either a token or a cached browser sign-in.</li></ul></div>
+    <div class="pr"><h4>Asking questions about a job</h4><p>The console's job chat runs an explorer agent bound to one project through closures: the project never appears in any tool input, so the model has no parameter with which to name another. Nine read-only tools, a sandbox with no network, a path guard that denies by default, and for the platform's own repository a throwaway worktree rather than the live checkout.</p></div>
+  </div>
+</div></section>
+
+<section id="notify" class="reveal"><div class="wrap">
+  <div class="sec-head">
+    <div><div class="eyebrow">Notifications</div><h2 style="margin-top:10px">One Slack thread per job. The channel shows one line per change.</h2></div>
+    <p class="lede">The first message a job emits becomes the root of a thread with a deep link back to the console; every later message replies in that thread. A generic webhook receives a structured payload instead. Egress is hardened against server-side request forgery: addresses are resolved, pinned, and must be globally routable, with the IPv6 embeddings that fool naive checks unwrapped.</p>
+  </div>
+  <p class="take">One Slack thread per job, from planning to deployed, with every detour named.</p>
+  <button class="details-toggle" type="button" aria-expanded="false">Show the details</button>
+  <div class="versus" data-deep>
+    <div class="pr"><h4>The happy path, in order</h4>
+      <ol class="steps" style="margin:10px 0 0;padding:0">
+        <li>🧭 <b>planning…</b></li>
+        <li>📋 <b>planned 2 stories. Building…</b></li>
+        <li>🔨 <b>built and pushed. Linting…</b> with the pull request link</li>
+        <li>🧹 <b>lint passed. Testing…</b></li>
+        <li>✅ <b>tests passed. Reviewing…</b></li>
+        <li>🔎 <b>review passed. Running security check…</b></li>
+        <li>🔒 <b>security passed. Merging…</b> (🎨 design review when the diff touches the UI)</li>
+        <li>🔀 <b>squash-merged. Deploying…</b></li>
+        <li>🚀 <b>deployed. Done.</b> Dependents unblocked</li>
+      </ol></div>
+    <div class="pr"><h4>The detours, each with its own message</h4>
+      <ul><li>🛠️ failure detected, self-healing, attempt n of 5</li><li>🔁 fix applied, re-linting</li><li>🔀 merge conflict, resolving, rebase n of 5</li><li>🔄 base advanced, re-verifying before merge</li><li>⏱️ stage timed out, retrying, n of 2</li><li>⏸️ provider hit its limit, pausing until a time, or resuming on the other provider</li><li>✂️ plan too large, split into n jobs</li><li>♻️ restarting to apply a pipeline update</li><li>❌ failed, with stage, attempts and reason</li><li>⚠️ supervisor escalations carry an explicit needs-attention type and a reason; ℹ️ and 🩺 lines record automatic requeues and diagnoses</li></ul>
+      <p style="margin-top:10px">Bot tokens are stored encrypted with a key that must be provisioned; without it, no plaintext is ever written.</p></div>
+  </div>
+</div></section>
+
+<div class="wrap"><div class="nextprev"><a class="prev" href="/how-it-works/workers/"><span class="eyebrow">← Previous</span><b>Workers and the control plane</b></a><a class="next" href="/how-it-works/console/"><span class="eyebrow">Next chapter →</span><b>The console</b></a></div></div>
+<footer><div class="wrap"><span>Hyqs · autonomous SDLC pipeline · figures from the live ledger, 6 September 2026</span><span>Every mechanism on these pages is cited to a source file in the Hyqs repository.</span></div></footer>
+<script src="/how-it-works/assets/site.js"></script>
+<script>
+(function(){
+  // the interview tour reuses the shared tour handler but keeps one static image
+  document.querySelectorAll("[data-tour]").forEach(t=>{const img=t.querySelector("img");if(img&&img.dataset.static){const src=img.getAttribute("src");t.querySelectorAll(".list button").forEach(b=>b.dataset.shot=src);}});
+  // MCP catalogue
+  const T=[
+    ["list_projects","Projects visible to the caller","authenticated","read"],["list_jobs","Paged jobs with cursor and summary mode","member","read"],["get_job","One job, optionally reduced","member","read"],["list_epics","Epics for a project","member","read"],
+    ["job_events","Stage timeline of a job","member","read"],["job_supervisor_events","Supervisor remediation timeline","member","read"],["watch_job","Stream stage transitions until terminal","member","read"],["job_diff","Branch diff against the default branch","member","read"],
+    ["survey_job_queue","Pre-flight file-collision check of candidate jobs","member","read"],["project_performance","Headline and per-stage statistics","member","read"],["list_agents","The project roster","member","read"],["agent_stats","Cost, duration and fix rate per agent","member","read"],["get_project_spec","Specification and configuration","member","read"],["list_webhooks","Notification subscriptions","manage_webhooks","read"],
+    ["create_job","File one job: dedup, idempotency key, remediation link","queue_job","jobs"],["create_job_wave","Atomic wave, auto-chained on file overlap","queue_job","jobs"],["cancel_job","Cancel pending or running","cancel_job","jobs"],["retry_job","Re-run from plan; force bypasses the scope gate","retry_job","jobs"],["requeue_job","Re-run from a named stage","resolve_job","jobs"],["resolve_job","Mark failed or cancelled as resolved","resolve_job","jobs"],["fix_forward_job","File a linked remediation, optionally re-point dependents","resolve_job","jobs"],["update_job","Title, idea, priority, epic","edit_job_deps","jobs"],["archive_job","Tear down artefacts","member","jobs"],["unarchive_job","Restore","member","jobs"],["add_job_dependency","Add an edge, cycle-checked fleet-wide","edit_job_deps","jobs"],["remove_job_dependency","Remove an edge","edit_job_deps","jobs"],["get_job_dependency_graph","The full graph","member","jobs"],
+    ["create_epic","New epic","member","plan"],["update_epic","Edit an epic","member","plan"],["add_backlog_item","Propose to the backlog","propose_backlog","plan"],
+    ["register_webhook","Subscribe a URL or Slack channel","manage_webhooks","ops"],["set_webhook_active","Enable or disable","manage_webhooks","ops"],["delete_webhook","Remove","manage_webhooks","ops"],["set_slack_credential","Store a bot token, never echoed","manage_webhooks","ops"],["promote_release","Push a release to an environment; prod needs deploy.promote_prod","deploy.promote","ops"],["offer_release","Make a release available for a client approver to apply","deploy.offer","ops"],["update_project","Configuration and roster","edit_project","ops"],["resync_nginx_vhost","Re-apply the vhost from configuration","edit_project","ops"],
+  ];
+  const tb=document.querySelector("#mcpTbl tbody"),q=document.getElementById("mcpSearch"),cnt=document.getElementById("mcpCount");let k="all";if(!tb)return;
+  const draw=()=>{const s=q.value.trim().toLowerCase();tb.innerHTML="";let n=0;T.forEach(r=>{if(k!=="all"&&r[3]!==k)return;if(s&&!(r[0]+" "+r[1]).toLowerCase().includes(s))return;n++;const tr=document.createElement("tr");tr.innerHTML=`<td><span class="mono">${r[0]}</span></td><td>${r[1]}</td><td><span class="pill det">${r[2]}</span></td>`;tb.appendChild(tr);});cnt.textContent=`${n} of ${T.length} tools`;};
+  q.addEventListener("input",draw);
+  document.querySelectorAll("#mcp .chipbtn").forEach(b=>b.addEventListener("click",()=>{document.querySelectorAll("#mcp .chipbtn").forEach(x=>x.setAttribute("aria-pressed","false"));b.setAttribute("aria-pressed","true");k=b.dataset.k;draw();}));
+  draw();
+})();
+
+</script>
+</body>
+</html>

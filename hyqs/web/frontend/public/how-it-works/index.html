@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Hyqs: the autonomous SDLC pipeline that plans, builds, tests, reviews, secures, merges and deploys on its own, and leaves evidence at every step. Production grade for regulated industries.">
+<meta name="robots" content="noindex">
+<meta name="color-scheme" content="light dark">
+<title>Hyqs</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,300..800&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="/how-it-works/assets/site.css">
+<script>try{var t=localStorage.getItem("hyqs-site-theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t);}catch(e){}</script>
+</head>
+<body data-read="skim" data-chapter="index">
+<div class="progress" aria-hidden="true"><i></i></div><div class="rail"><div class="wrap"><a class="brand" href="/how-it-works/"><i></i>Hyqs</a><nav aria-label="Chapters"><a class="chap" href="/how-it-works/pipeline/">Pipeline</a><a class="chap" href="/how-it-works/workers/"><b>1</b>Workers</a><a class="chap" href="/how-it-works/intake/"><b>2</b>Intake</a><a class="chap" href="/how-it-works/console/"><b>3</b>Console</a><a class="chap" href="/how-it-works/evidence/"><b>4</b>Evidence</a><a class="chap" href="/how-it-works/economics/"><b>5</b>Economics</a><a class="chap" href="/how-it-works/deploy/"><b>6</b>Deploy</a><a class="chap" href="/how-it-works/regulated/"><b>7</b>Regulated</a><a class="chap" href="/how-it-works/reference/"><b>8</b>Reference</a></nav><div class="ctl" role="group" aria-label="Reading mode"><button class="mode" data-mode="skim" aria-pressed="true" title="One takeaway per section; open details where you want them">Skim</button><button class="mode" data-mode="deep" aria-pressed="false" title="Everything unfolded">Deep</button><a class="present" href="/how-it-works/deck/" title="A fourteen-slide summary that stands on its own">Deck</a><button class="theme" id="themeBtn" title="Switch between light and dark" aria-label="Switch theme">☾</button></div></div></div>
+
+
+<header class="cover"><div class="wrap">
+  <div class="cover-grid">
+    <div class="cover-copy">
+      <div class="logo" aria-label="Hyqs">
+        <svg viewBox="0 0 64 64" width="56" height="56" role="img" aria-label="Hyqs logo: a diamond gate with a token passing through"><rect x="14" y="14" width="36" height="36" rx="8" transform="rotate(45 32 32)" fill="none" stroke="var(--accent)" stroke-width="4"/><path d="M21 32h22" stroke="var(--accent)" stroke-width="4" stroke-linecap="round"/><circle cx="32" cy="32" r="4" fill="var(--ink)"/></svg>
+        <span>Hyqs</span>
+      </div>
+      <h1>Software that ships itself, and can prove it.</h1>
+      <p class="lede">Hyqs takes a written change request and plans, builds, tests, reviews, secures, merges and deploys it on its own. AI proposes at three points. Deterministic code decides at every gate and performs every irreversible action. Every job leaves an audit trail.</p>
+      <div class="cta">
+        <a class="btn primary" href="/how-it-works/pipeline/">Start the tour →</a>
+        <a class="btn" href="/how-it-works/deck/">See the deck →</a>
+      </div>
+    </div>
+    <figure class="cover-art">
+      <canvas id="flowArt" width="1200" height="640" aria-hidden="true"></canvas>
+      <svg class="art-fallback" viewBox="0 0 1200 640" role="img" aria-label="Changes flowing left to right through five gates; most pass, some are sent back to a fix lane and re-enter"></svg>
+      <figcaption>Changes flow through five gates. Most pass. Some are sent back to fix and re-enter. Nothing lands that a gate refused.</figcaption>
+    </figure>
+  </div>
+</div></header>
+
+<section id="figures" class="cover-figures"><div class="wrap">
+  <div class="figs four" aria-label="Live production figures">
+    <div class="fig"><b>2,673</b><small>changes shipped in 68 days by a team of 4, across 6 products. 61% landed at night or on a weekend</small></div>
+    <div class="fig"><b>2,294</b><small>times a gate stopped a change before merge. 395 of those were the security gate</small></div>
+    <div class="fig"><b>881</b><small>shipped changes that failed a gate first and repaired themselves, no human in the loop</small></div>
+    <div class="fig"><b>$3.69</b><small>all-in model cost per shipped change. Median $2.41, median 35 minutes from request to live</small></div>
+  </div>
+  <p class="figs-note">Read from the pipeline's own database ledger on 6 September 2026; 744 of those changes were Hyqs shipping improvements to itself.</p>
+  </div></section>
+
+<section id="features" class="cover-features"><div class="wrap">
+  <div class="feat-grid">
+    <a href="/how-it-works/pipeline/"><b>Plans and builds</b><span>in isolated worktrees, one pull request per change</span></a>
+    <a href="/how-it-works/pipeline/#gates"><b>Five gates, fail-closed</b><span>lint, tests, review, security scanners, design</span></a>
+    <a href="/how-it-works/pipeline/#heal"><b>Heals itself, within budgets</b><span>every retry capped, every exit named</span></a>
+    <a href="/how-it-works/workers/"><b>Your database, your hosts</b><span>no broker, workers on any machine, one elected supervisor</span></a>
+    <a href="/how-it-works/evidence/"><b>Evidence by construction</b><span>stage events, cost ledger, database-level audit log, decision records</span></a>
+    <a href="/how-it-works/economics/"><b>$3.69 per shipped change</b><span>median 35 minutes from request to live</span></a>
+  </div>
+  <div class="reg-line">
+    <div class="eyebrow">Production grade for regulated industries</div>
+    <p>Segregation of duties enforced by tool policy, not by prompt. A reviewer that cannot write. An audit log written by the database, with columns the application cannot forge. Releases signed and promoted by digest. Limits stated before you find them.</p>
+    <a href="/how-it-works/regulated/">The control map →</a>
+  </div>
+  <div class="eyebrow" style="margin-top:48px">The tour · nine chapters, each answering one question</div>
+  <div class="toc" style="margin-top:14px">
+    <a href="/how-it-works/pipeline/"><span class="n">01</span><b>The life of a job</b><p>Eleven steps, four loops, every exit named. Click any stage, or play a sample job.</p></a>
+    <a href="/how-it-works/workers/"><span class="n">02</span><b>Workers and the control plane</b><p>Executors, the elected supervisor, the deployer, the agent roster.</p></a>
+    <a href="/how-it-works/intake/"><span class="n">03</span><b>Getting work in</b><p>Five ways to file a job, the intake interview, the architect, MCP, CLI and Slack.</p></a>
+    <a href="/how-it-works/console/"><span class="n">04</span><b>The console</b><p>A screen-by-screen tour, from the work lanes to the audit log.</p></a>
+    <a href="/how-it-works/evidence/"><span class="n">05</span><b>Evidence and governance</b><p>What every job records, the database-level audit trail, roles, and what an auditor can ask.</p></a>
+    <a href="/how-it-works/economics/"><span class="n">06</span><b>Economics</b><p>The cost ledger, where the tokens go, a calculator, and the report that audits its own meter.</p></a>
+    <a href="/how-it-works/deploy/"><span class="n">07</span><b>Deployment and operations</b><p>Probe-first cutover, environments and promotions, signing, secrets, runtime controls.</p></a>
+    <a href="/how-it-works/regulated/"><span class="n">08</span><b>For regulated industries</b><p>The controls a bank asks for, mapped to the mechanisms, limits first.</p></a>
+    <a href="/how-it-works/reference/"><span class="n">09</span><b>Reference</b><p>Every setting, tool, key, price and permission, in one place.</p></a>
+  </div>
+</div></section>
+
+<div class="wrap"><div class="nextprev"><span></span><a class="next" href="/how-it-works/pipeline/"><span class="eyebrow">Next chapter →</span><b>The life of a job</b></a></div></div>
+<footer><div class="wrap"><span>Hyqs · autonomous SDLC pipeline · figures from the live ledger, 6 September 2026</span><span>Every mechanism on these pages is cited to a source file in the Hyqs repository.</span></div></footer>
+<script src="/how-it-works/assets/site.js"></script>
+<script>
+(function(){
+  const cv=document.getElementById("flowArt"); if(!cv) return;
+  const ctx=cv.getContext("2d"); const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const W=1200,H=640; let dpr=1;
+  const css=()=>{const s=getComputedStyle(document.documentElement);const g=n=>s.getPropertyValue(n).trim();return {ink:g("--ink"),muted:g("--muted"),line:g("--line2"),accent:g("--accent"),pass:g("--pass"),fail:g("--fail"),ochre:g("--ochre"),steel:g("--steel"),surface:g("--surface")};};
+  let C=css(), tick=0;
+  const size=()=>{dpr=Math.min(2,window.devicePixelRatio||1);cv.width=W*dpr;cv.height=H*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);};
+  size(); window.addEventListener("resize",size);
+  // geometry: a main lane, five gates, a fix lane below, and a landing zone
+  const laneY=250, laneH=150, fixY=470, gates=[{x:330,n:"lint",p:.04},{x:470,n:"test",p:.16},{x:610,n:"review",p:.12},{x:750,n:"security",p:.09},{x:890,n:"design",p:.03}];
+  const mergeX=1010, liveX=1120, startX=40;
+  const rnd=(a,b)=>a+Math.random()*(b-a);
+  const parts=[]; const MAX=reduce?44:64;
+  const spawn=(x)=>({x:x==null?startX-rnd(0,120):x,y:laneY+rnd(0,laneH),v:rnd(1.1,1.7),state:"run",gate:0,t:0,fix:0,r:rnd(4,6.5),flash:0,fc:null,ty:0});
+  for(let i=0;i<MAX;i++){const p=spawn(rnd(startX,mergeX-40));p.gate=gates.findIndex(g=>g.x>p.x);if(p.gate<0)p.gate=gates.length;parts.push(p);}
+  const drawStatic=()=>{
+    ctx.clearRect(0,0,W,H);
+    // lane band
+    ctx.fillStyle=C.surface; ctx.globalAlpha=.5; roundRect(startX,laneY-24,liveX-startX+30,laneH+48,18); ctx.fill(); ctx.globalAlpha=1;
+    // fix lane
+    ctx.strokeStyle=C.ochre; ctx.setLineDash([6,6]); ctx.lineWidth=1.2; ctx.beginPath(); ctx.moveTo(gates[0].x-20,fixY); ctx.lineTo(gates[gates.length-1].x+20,fixY); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle=C.ochre; ctx.font="15px 'IBM Plex Mono', monospace"; ctx.textAlign="left"; ctx.fillText("fix · re-lint · re-test · re-review", gates[0].x-20, fixY+26);
+    // gates
+    gates.forEach(g=>{ctx.strokeStyle=C.steel; ctx.lineWidth=4; ctx.beginPath(); ctx.moveTo(g.x,laneY-30); ctx.lineTo(g.x,laneY+laneH+30); ctx.stroke(); ctx.fillStyle=C.muted; ctx.font="16px 'IBM Plex Mono', monospace"; ctx.textAlign="center"; ctx.fillText(g.n,g.x,laneY-46);});
+    // merge + live
+    ctx.strokeStyle=C.accent; ctx.lineWidth=4; ctx.beginPath(); ctx.moveTo(mergeX,laneY-30); ctx.lineTo(mergeX,laneY+laneH+30); ctx.stroke(); ctx.fillStyle=C.accent; ctx.font="16px 'IBM Plex Mono', monospace"; ctx.textAlign="center"; ctx.fillText("merge",mergeX,laneY-46);
+    ctx.beginPath(); ctx.arc(liveX,laneY+laneH/2,30,0,Math.PI*2); ctx.strokeStyle=C.pass; ctx.lineWidth=4; ctx.stroke(); ctx.fillStyle=C.pass; ctx.fillText("live",liveX,laneY+laneH/2+66);
+    ctx.fillStyle=C.muted; ctx.textAlign="left"; ctx.fillText("request",startX,laneY-46);
+    ctx.font="14px 'IBM Plex Mono', monospace"; ctx.fillStyle=C.muted; ctx.textAlign="right"; ctx.fillText("deterministic gates · AI reviewers · budgets, not retries forever", liveX+28, H-28);
+    // faint lane guides
+    ctx.strokeStyle=C.line; ctx.lineWidth=1; ctx.globalAlpha=.5; for(let k=0;k<4;k++){const y=laneY+laneH*(k+.5)/4; ctx.beginPath(); ctx.moveTo(startX,y); ctx.lineTo(mergeX-12,y); ctx.stroke();} ctx.globalAlpha=1;
+  };
+  function roundRect(x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();}
+  const drawParts=()=>{
+    parts.forEach(p=>{
+      let col=C.ink; if(p.state==="fix")col=C.ochre; if(p.state==="done")col=C.pass;
+      if(p.flash>0){col=p.fc;p.flash--;}
+      ctx.globalAlpha=p.state==="done"?Math.max(0,1-p.t/60):1;
+      ctx.fillStyle=col; ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2); ctx.fill();
+      ctx.globalAlpha=1;
+    });
+  };
+  const step=()=>{
+    parts.forEach((p,i)=>{
+      if(p.state==="run"){
+        p.x+=p.v;
+        if(p.gate<gates.length&&p.x>=gates[p.gate].x){
+          const g=gates[p.gate];
+          if(Math.random()<g.p&&p.fix<2){p.state="fix";p.fix++;p.flash=18;p.fc=C.fail;p.ty=fixY+rnd(-12,12);}
+          else{p.flash=12;p.fc=C.pass;p.gate++;}
+        }
+        if(p.x>=mergeX&&p.state==="run"){p.state="done";p.t=0;}
+      }else if(p.state==="fix"){
+        // curve down to the fix lane, travel left to before lint, then climb back into the lane
+        if(p.y<p.ty){p.y+=3;p.x-=0.6;}
+        else if(p.x>gates[0].x-40){p.x-=2.6;}
+        else{p.state="climb";p.ty=laneY+rnd(0,laneH);}
+      }else if(p.state==="climb"){
+        if(p.y>p.ty){p.y-=3;p.x+=0.4;}else{p.state="run";p.gate=0;p.v=rnd(1.1,1.7);}
+      }else if(p.state==="done"){
+        p.x+=(liveX-p.x)*0.05; p.y+=(laneY+laneH/2-p.y)*0.05; p.t++;
+        if(p.t>60)parts[i]=spawn();
+      }
+    });
+  };
+  const frame=()=>{if(tick++%30===0)C=css();drawStatic();drawParts();if(!reduce){step();requestAnimationFrame(frame);}};
+  frame();
+  document.getElementById("themeBtn")?.addEventListener("click",()=>{setTimeout(()=>{C=css();if(reduce){drawStatic();drawParts();}},50);});
+})();
+
+</script>
+</body>
+</html>

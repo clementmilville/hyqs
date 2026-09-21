@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+*.egg-info/
+dist/
+build/
+
+# Env & secrets
+.env
+.install-credentials
+*.local
+.claude/settings.local.json
+
+# Runtime data
+data/
+*.db
+*.sqlite3
+*.log
+
+# Node / frontend build
+node_modules/
+hyqs/web/frontend/dist/
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/

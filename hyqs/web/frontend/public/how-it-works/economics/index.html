@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="The cost ledger, token mix, rework share, a cost calculator and the economics report&#x27;s own audit.">
+<meta name="robots" content="noindex">
+<meta name="color-scheme" content="light dark">
+<title>Economics</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,300..800&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="/how-it-works/assets/site.css">
+<script>try{var t=localStorage.getItem("hyqs-site-theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t);}catch(e){}</script>
+</head>
+<body data-read="skim" data-chapter="economics">
+<div class="progress" aria-hidden="true"><i></i></div><div class="rail"><div class="wrap"><a class="brand" href="/how-it-works/"><i></i>Hyqs</a><nav aria-label="Chapters"><a class="chap" href="/how-it-works/pipeline/">Pipeline</a><a class="chap" href="/how-it-works/workers/"><b>1</b>Workers</a><a class="chap" href="/how-it-works/intake/"><b>2</b>Intake</a><a class="chap" href="/how-it-works/console/"><b>3</b>Console</a><a class="chap" href="/how-it-works/evidence/"><b>4</b>Evidence</a><a class="chap on" href="/how-it-works/economics/"><b>5</b>Economics</a><a class="chap" href="/how-it-works/deploy/"><b>6</b>Deploy</a><a class="chap" href="/how-it-works/regulated/"><b>7</b>Regulated</a><a class="chap" href="/how-it-works/reference/"><b>8</b>Reference</a></nav><div class="ctl" role="group" aria-label="Reading mode"><button class="mode" data-mode="skim" aria-pressed="true" title="One takeaway per section; open details where you want them">Skim</button><button class="mode" data-mode="deep" aria-pressed="false" title="Everything unfolded">Deep</button><a class="present" href="/how-it-works/deck/" title="A fourteen-slide summary that stands on its own">Deck</a><button class="theme" id="themeBtn" title="Switch between light and dark" aria-label="Switch theme">☾</button></div></div></div>
+<header class="chapter-hero"><div class="wrap"><div class="eyebrow">Chapter 5 of 8</div><h1 style="margin-top:12px">Economics</h1><p class="lede">What does a change cost, and where do the tokens go?</p></div></header>
+<aside class="story" aria-label="One job, followed across chapters"><div class="wrap"><div class="story-head"><span class="eyebrow">Follow one change · job #4244</span><a class="small" href="/how-it-works/console/">see it in the console →</a></div><div class="strip"><span class="chip"><b>Filed</b><small>19:42</small></span><span class="chip"><b>Claimed</b><small>19:59</small></span><span class="chip on"><b>Plan</b><small>2 min</small></span><span class="chip on"><b>Build</b><small>9 min</small></span><span class="chip"><b>Lint</b><small>5 s</small></span><span class="chip"><b>Test</b><small>11 s</small></span><span class="chip on"><b>Review</b><small>pass</small></span><span class="chip on"><b>Security</b><small>✗ stop</small></span><span class="chip on"><b>Fix</b><small>2 min</small></span><span class="chip on"><b>Re-verify</b><small>✓ ✓ ✓</small></span><span class="chip"><b>Merge</b><small>20:18</small></span><span class="chip"><b>Deploy</b><small>20:19</small></span><span class="chip"><b>Live</b><small>20:19:53</small></span></div><p>#4244 cost $11.01 and 9.95 million tokens, above the median because the build alone read 5.6 million cached tokens. The security stop cost $0.76 to find, $1.28 to fix and $1.10 to re-verify: the rework line, on one job.</p></div></aside>
+<section id="headline" class="reveal"><div class="wrap">
+  <div class="sec-head">
+    <div><div class="eyebrow">The headline</div><h2 style="margin-top:10px">A shipped, reviewed, security-scanned, deployed change for the price of two minutes of an engineer.</h2></div>
+    <p class="lede">From the pipeline's own ledger: 3,862 jobs across six repositories, 30 June to 25 August 2026, read from the database with no adjustment. At a loaded senior-engineer cost of €100 an hour, the median change costs about ninety seconds of attention in model spend.</p>
+  </div>
+  <p class="take">A shipped, reviewed, scanned and deployed change for about two minutes of an engineer.</p>
+  <div class="figs four">
+    <div class="fig"><b>$3.69</b><small>all-in model cost per delivered change, every job and operation included</small></div>
+    <div class="fig"><b>$2.41</b><small>median delivered change; mean $3.42, maximum $72.55</small></div>
+    <div class="fig"><b>40 min</b><small>median wall clock from request to live; 13 min of active stage time</small></div>
+    <div class="fig"><b>76.5%</b><small>of jobs the requester let run shipped unattended; the rest stopped at a gate with evidence</small></div>
+  </div>
+</div></section>
+
+<section id="calc" class="reveal alt"><div class="wrap">
+  <div class="sec-head">
+    <div><div class="eyebrow">Your numbers</div><h2 style="margin-top:10px">A calculator with the ledger's defaults and your inputs.</h2></div>
+    <p class="lede">Change the volume, the rework share and the engineer cost. The model bill uses the recorded cost per delivered change; the comparison uses the median active stage time as the attention a person would otherwise have spent driving the same change through review and deployment.</p>
+  </div>
+  <p class="take">Put in your volume and your rate; the defaults are the ledger&#x27;s.</p>
+  <div class="widget">
+    <div class="ctrls">
+      <div><label for="cVol">Changes per month</label><output id="oVol">200</output><input id="cVol" type="range" min="10" max="2000" step="10" value="200"></div>
+      <div><label for="cCost">Model cost per delivered change ($)</label><output id="oCost">3.69</output><input id="cCost" type="range" min="1" max="15" step="0.1" value="3.69"><span class="small">ledger: $3.69 all-in, $3.87 ordinary work</span></div>
+      <div><label for="cRework">Rework share of tokens (%)</label><output id="oRework">19.5</output><input id="cRework" type="range" min="0" max="50" step="0.5" value="19.5"><span class="small">ledger: 19.5% (fix rounds, merge re-verification, diagnosis)</span></div>
+      <div><label for="cEng">Loaded engineer cost (€/h)</label><output id="oEng">100</output><input id="cEng" type="range" min="40" max="250" step="5" value="100"></div>
+      <div><label for="cMin">Human minutes saved per change</label><output id="oMin">13</output><input id="cMin" type="range" min="5" max="120" step="1" value="13"><span class="small">ledger: 13 min median active stage time</span></div>
+    </div>
+    <div class="result">
+      <div><b id="rBill">$738</b><small>model bill per month</small></div>
+      <div><b id="rRework">$144</b><small>of it is rework, the line to optimise</small></div>
+      <div><b id="rHours">43 h</b><small>engineer hours not spent driving changes</small></div>
+      <div><b id="rEq">€4,333</b><small>equivalent engineer cost at your rate</small></div>
+      <div><b id="rRatio">5.9×</b><small>engineer cost to model bill</small></div>
+    </div>
+    <p class="small" style="margin-top:12px">Assumptions are yours to set. The calculator does not claim the engineer disappears; it prices the attention the pipeline absorbs per change.</p>
+  </div>
+</div></section>
+
+<section id="ledger" class="reveal"><div class="wrap">
+  <div class="sec-head">
+    <div><div class="eyebrow">How cost is measured</div><h2 style="margin-top:10px">Four token classes, a price table, and the SDK's own figure whenever it reports one.</h2></div>
+    <p class="lede">Every model call writes a usage row with provider, model, input, output, cache-write and cache-read tokens, the cost and the stage it served. The cost comes from the provider SDK when it reports one, otherwise from the price table. Interactive developer sessions are captured by a hook into the same ledger, so human-in-the-loop work is not invisible.</p>
+  </div>
+  <p class="take">Mostly cache reads. Context is what costs, not output.</p>
+  <button class="details-toggle" type="button" aria-expanded="false">Show the details</button>
+  <div class="versus" data-deep>
+    <div class="pr"><h4>Where the tokens go, by stage</h4>
+      <div class="bars">
+        <div class="bar"><span>Build</span><div class="tr"><i style="width:46.7%"></i></div><span class="v">46.7%</span></div>
+        <div class="bar"><span>Fix</span><div class="tr"><i class="o" style="width:17.6%"></i></div><span class="v">17.6%</span></div>
+        <div class="bar"><span>Plan</span><div class="tr"><i style="width:15.4%"></i></div><span class="v">15.4%</span></div>
+        <div class="bar"><span>Review</span><div class="tr"><i style="width:13.0%"></i></div><span class="v">13.0%</span></div>
+        <div class="bar"><span>Security</span><div class="tr"><i style="width:3.7%"></i></div><span class="v">3.7%</span></div>
+        <div class="bar"><span>Other</span><div class="tr"><i style="width:3.6%"></i></div><span class="v">3.6%</span></div>
+      </div>
+      <p style="margin-top:12px">Plan is 15% of tokens but 24% of cost; build is 47% of tokens and 38% of cost. Context is what costs, which is why the file manifests and symbol index handed to agents matter more than the model tier.</p></div>
+    <div class="pr"><h4>A reading machine</h4>
+      <div class="tokring">
+        <svg viewBox="0 0 120 120" role="img" aria-label="Token mix: 84.5 percent cache read, 9.9 percent fresh input, 4.7 percent cache write, 1 percent output">
+          <circle cx="60" cy="60" r="46" fill="none" stroke="var(--surface2)" stroke-width="16"/>
+          <circle cx="60" cy="60" r="46" fill="none" stroke="var(--steel)" stroke-width="16" stroke-dasharray="244.2 289" transform="rotate(-90 60 60)"/>
+          <circle cx="60" cy="60" r="46" fill="none" stroke="var(--accent)" stroke-width="16" stroke-dasharray="28.6 289" stroke-dashoffset="-244.2" transform="rotate(-90 60 60)"/>
+          <circle cx="60" cy="60" r="46" fill="none" stroke="var(--ochre)" stroke-width="16" stroke-dasharray="13.6 289" stroke-dashoffset="-272.8" transform="rotate(-90 60 60)"/>
+          <circle cx="60" cy="60" r="46" fill="none" stroke="var(--fail)" stroke-width="16" stroke-dasharray="2.9 289" stroke-dashoffset="-286.4" transform="rotate(-90 60 60)"/>
+        </svg>
+        <ul><li><i style="background:var(--steel)"></i>84.5% cache read</li><li><i style="background:var(--accent)"></i>9.9% fresh input</li><li><i style="background:var(--ochre)"></i>4.7% cache write</li><li><i style="background:var(--fail)"></i>1.0% output</li></ul>
+      </div>
+      <p style="margin-top:12px">86 cached tokens are read for every token written. Cache reads are priced at a tenth of fresh input, so the cost of a change is mostly the cost of re-reading the repository.</p></div>
+  </div>
+  <p class="small" style="margin-top:14px">The price table per model and token class: <a href="/how-it-works/reference/#pricing">Reference</a>.</p>
+</div></section>
+
+<section id="quality" class="reveal alt"><div class="wrap">
+  <div class="sec-head">
+    <div><div class="eyebrow">The quality bill</div><h2 style="margin-top:10px">Rework is measured, not estimated, and it is the number we work on.</h2></div>
+    <p class="lede">Fix rounds, merge re-verification and incident diagnosis are attributed to their own stages in the ledger, so the share of tokens spent because a gate said no is a query.</p>
+  </div>
+  <p class="take">Rework is 19.5 percent of tokens, measured per stage, and it is the number we work on.</p>
+  <button class="details-toggle" type="button" aria-expanded="false">Show the details</button>
+  <div class="ticker" data-deep>
+    <div class="tk"><b>19.5%</b><small>of delivery tokens are identifiable rework, $1,514.67 in the period</small></div>
+    <div class="tk"><b>29.8%</b><small>of ordinary jobs used at least one fix round</small></div>
+    <div class="tk"><b>60.9%</b><small>shipped clean on the first pass</small></div>
+    <div class="tk"><b>4.66 M</b><small>tokens per delivered change; median 2.68 M</small></div>
+  </div>
+</div></section>
+
+<section id="selfaudit" class="reveal"><div class="wrap">
+  <div class="sec-head">
+    <div><div class="eyebrow">Audit the meter</div><h2 style="margin-top:10px">The report that produced these figures also audits its own meter. We bring that audit to the table.</h2></div>
+    <p class="lede">A cost figure is only as good as the ledger behind it. The economics report checks the ledger against a second one and reports the disagreement, so the headline arrives with its error bars.</p>
+  </div>
+  <p class="take">Two ledgers disagree by six percent, and the report says so before anyone asks.</p>
+  <button class="details-toggle" type="button" aria-expanded="false">Show the details</button>
+  <div class="versus" data-deep>
+    <div class="callout"><p><strong>Two ledgers disagree by six percent.</strong> The usage rows hold 11.983 billion tokens and $9,486; the stage-event ledger holds 11.285 billion and $8,865. The event ledger understates by 697.7 million tokens and $620.87, because usage is written after a stage completes and provider failures, timeouts, cancellations and process deaths can occur first.</p></div>
+    <div class="callout"><p><strong>Three coverage gaps, quantified.</strong> 405 ordinary jobs have no usage row, 24 of them delivered. 93.8% of historical usage rows lack model metadata, so the Codex-versus-Claude split cannot be quoted. 3,635 rows report zero cost, most of them unpriced models before the price table was completed.</p></div>
+  </div>
+  <div class="band" data-deep><h4>What that changes</h4><p>The headline is a recorded minimum, not an estimate. The report's recommendation, one durable stage-attempt ledger opened before every provider call and finalised on every exit path, reconciled against provider logs, is on the roadmap. Project comparisons reflect different models, dates and workloads as well as engineering efficiency, and are presented that way.</p></div>
+</div></section>
+
+<div class="wrap"><div class="nextprev"><a class="prev" href="/how-it-works/evidence/"><span class="eyebrow">← Previous</span><b>Evidence and governance</b></a><a class="next" href="/how-it-works/deploy/"><span class="eyebrow">Next chapter →</span><b>Deployment and operations</b></a></div></div>
+<footer><div class="wrap"><span>Hyqs · autonomous SDLC pipeline · figures from the live ledger, 6 September 2026</span><span>Every mechanism on these pages is cited to a source file in the Hyqs repository.</span></div></footer>
+<script src="/how-it-works/assets/site.js"></script>
+<script>
+(function(){
+  const $=id=>document.getElementById(id);
+  const f=(n,c)=>c+n.toLocaleString(undefined,{maximumFractionDigits:0});
+  const calc=()=>{
+    const vol=+$("cVol").value,cost=+$("cCost").value,rw=+$("cRework").value,eng=+$("cEng").value,min=+$("cMin").value;
+    $("oVol").textContent=vol;$("oCost").textContent=cost.toFixed(2);$("oRework").textContent=rw;$("oEng").textContent=eng;$("oMin").textContent=min;
+    const bill=vol*cost,rework=bill*rw/100,hours=vol*min/60,eq=hours*eng;
+    $("rBill").textContent=f(bill,"$");$("rRework").textContent=f(rework,"$");$("rHours").textContent=hours.toLocaleString(undefined,{maximumFractionDigits:0})+" h";$("rEq").textContent=f(eq,"€");
+    $("rRatio").textContent=(eq/bill).toFixed(1)+"×";
+  };
+  ["cVol","cCost","cRework","cEng","cMin"].forEach(id=>$(id).addEventListener("input",calc));calc();
+})();
+
+</script>
+</body>
+</html>

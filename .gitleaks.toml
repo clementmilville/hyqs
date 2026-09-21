@@ -1,0 +1,15 @@
+# Stock gitleaks ruleset, plus a narrow allowlist for known false positives.
+[extend]
+useDefault = true
+
+[allowlist]
+description = """
+Recharts series props — <Bar dataKey="p95_duration_s" /> — trip the
+generic-api-key rule: the attribute name ends in "Key" and the value has
+enough entropy to look like a token. These are chart column names, not
+credentials. Matched exactly so a genuine secret in the same file is still
+reported.
+"""
+regexes = [
+  '''^(avg|p50|p90|p95|p99)_duration_s$''',
+]

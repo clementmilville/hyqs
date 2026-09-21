@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Every record a job leaves, the database-level audit trail, roles and permissions, and the questions an auditor can ask.">
+<meta name="robots" content="noindex">
+<meta name="color-scheme" content="light dark">
+<title>Evidence and governance</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,300..800&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="/how-it-works/assets/site.css">
+<script>try{var t=localStorage.getItem("hyqs-site-theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t);}catch(e){}</script>
+</head>
+<body data-read="skim" data-chapter="evidence">
+<div class="progress" aria-hidden="true"><i></i></div><div class="rail"><div class="wrap"><a class="brand" href="/how-it-works/"><i></i>Hyqs</a><nav aria-label="Chapters"><a class="chap" href="/how-it-works/pipeline/">Pipeline</a><a class="chap" href="/how-it-works/workers/"><b>1</b>Workers</a><a class="chap" href="/how-it-works/intake/"><b>2</b>Intake</a><a class="chap" href="/how-it-works/console/"><b>3</b>Console</a><a class="chap on" href="/how-it-works/evidence/"><b>4</b>Evidence</a><a class="chap" href="/how-it-works/economics/"><b>5</b>Economics</a><a class="chap" href="/how-it-works/deploy/"><b>6</b>Deploy</a><a class="chap" href="/how-it-works/regulated/"><b>7</b>Regulated</a><a class="chap" href="/how-it-works/reference/"><b>8</b>Reference</a></nav><div class="ctl" role="group" aria-label="Reading mode"><button class="mode" data-mode="skim" aria-pressed="true" title="One takeaway per section; open details where you want them">Skim</button><button class="mode" data-mode="deep" aria-pressed="false" title="Everything unfolded">Deep</button><a class="present" href="/how-it-works/deck/" title="A fourteen-slide summary that stands on its own">Deck</a><button class="theme" id="themeBtn" title="Switch between light and dark" aria-label="Switch theme">☾</button></div></div></div>
+<header class="chapter-hero"><div class="wrap"><div class="eyebrow">Chapter 4 of 8</div><h1 style="margin-top:12px">Evidence and governance</h1><p class="lede">What do we hand the auditor?</p></div></header>
+<aside class="story" aria-label="One job, followed across chapters"><div class="wrap"><div class="story-head"><span class="eyebrow">Follow one change · job #4244</span><a class="small" href="/how-it-works/console/">see it in the console →</a></div><div class="strip"><span class="chip"><b>Filed</b><small>19:42</small></span><span class="chip"><b>Claimed</b><small>19:59</small></span><span class="chip on"><b>Plan</b><small>2 min</small></span><span class="chip on"><b>Build</b><small>9 min</small></span><span class="chip"><b>Lint</b><small>5 s</small></span><span class="chip"><b>Test</b><small>11 s</small></span><span class="chip on"><b>Review</b><small>pass</small></span><span class="chip on"><b>Security</b><small>✗ stop</small></span><span class="chip on"><b>Fix</b><small>2 min</small></span><span class="chip"><b>Re-verify</b><small>✓ ✓ ✓</small></span><span class="chip on"><b>Merge</b><small>20:18</small></span><span class="chip on"><b>Deploy</b><small>20:19</small></span><span class="chip"><b>Live</b><small>20:19:53</small></span></div><p>#4244 left 21 stage events, 7 usage rows, 1 deploy row, 1 decision record in the repository, and an audit row for every status change, each stamped with the worker slot that made it.</p></div></aside>
+<section id="records" class="reveal"><div class="wrap">
+  <div class="sec-head">
+    <div><div class="eyebrow">What a job leaves behind</div><h2 style="margin-top:10px">Evidence is written by the component that did the work, at the moment it did it.</h2></div>
+    <p class="lede">None of this is a report generated afterwards. Each record below has one writer, one moment and one named actor, and the table says which are append-only, which are pruned and which are not covered by the audit trigger.</p>
+  </div>
+  <p class="take">Nine records per job, each with one writer and one moment, and the table says which are pruned.</p>
+  <button class="details-toggle" type="button" aria-expanded="false">Show the details</button>
+  <div class="tbl" data-deep><table>
+    <thead><tr><th>Record</th><th>Written by</th><th>Contains</th><th>Properties</th></tr></thead>
+    <tbody>
+      <tr><td>Job row</td><td>runner, console, MCP, supervisor</td><td>idea, stage, status, attempts and the three other budgets, agent and provider, owner and lease, source and acting user, typed failure code, origin and disposition, deployed commit</td><td>Mutable; every change audited; soft-archived, never deleted except with its project</td></tr>
+      <tr><td>Stage events</td><td>each stage handler</td><td>stage, status, attempt, summary, structured detail (stories, commit, patch, findings, verdict), tokens, cost, start and end, the agent id</td><td>Append-only in practice; not audit-triggered</td></tr>
+      <tr><td>Stage logs</td><td>every subprocess and agent stream</td><td>one row per line with stage and attempt</td><td>Cascade with the job; no time pruning</td></tr>
+      <tr><td>Usage ledger</td><td>every model call</td><td>provider, model, four token classes, cost, source stage; developer sessions land here too with no job</td><td>Insert-only from the pipeline; not audit-triggered</td></tr>
+      <tr><td>Hardware</td><td>runner</td><td>CPU, peak memory, I/O, network, wall time per stage and attempt</td><td>Cascade with the job</td></tr>
+      <tr><td>Supervisor events</td><td>the elected supervisor</td><td>action, failure class, detail for every classification, requeue, filed job, dead-letter, escalation</td><td>Append-only</td></tr>
+      <tr><td>Deploy register</td><td>deploy stage</td><td>project, environment, commit, previous commit, trigger, verified, image reference, digest, signed</td><td>Append-only, audit-triggered, the source of truth for what is live</td></tr>
+      <tr><td>Decision record</td><td>merge stage</td><td>one markdown file per merged job in the repository: title, date, summary, files touched</td><td>Git history; newest 200 kept per repository</td></tr>
+      <tr><td>Audit log</td><td>a database trigger</td><td>see below</td><td>Pruned at 90 days by default</td></tr>
+    </tbody>
+  </table></div>
+</div></section>
+
+<section id="audit" class="reveal alt"><div class="wrap">
+  <div class="sec-head">
+    <div><div class="eyebrow">The audit trigger</div><h2 style="margin-top:10px">The application cannot write an unattributed row, and it cannot forge who it was.</h2></div>
+    <p class="lede">Thirteen tables carry a before-insert-update-delete trigger that stamps the acting identity, records a per-column old-to-new diff, and adds three columns the database observes about the connection itself. A direct SQL edit from outside the application is attributed to the database session user. Heartbeat churn is filtered so the log stays readable.</p>
+  </div>
+  <p class="take">A trigger inside the database, with three columns the application cannot forge.</p>
+  <button class="details-toggle" type="button" aria-expanded="false">Show the details</button>
+  <figure class="topo"><svg viewBox="0 0 1200 250" role="img" aria-label="Audit flow: a request sets a transaction-local actor; a table trigger fires on any write; the trigger stamps created_by and updated_by, diffs old and new, and appends an audit row with actor, connection PID, client address and backend start.">
+    <defs><marker id="aa" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="currentColor"/></marker></defs>
+    <g class="tb hi"><rect x="20" y="70" width="270" height="80" rx="5"/><text x="155" y="100" text-anchor="middle">Request or worker</text><text class="s" x="155" y="118" text-anchor="middle">user:email · apitoken:id · mcp:email</text><text class="s" x="155" y="132" text-anchor="middle">worker:id job:n · supervisor:host:pid</text></g>
+    <g class="tb"><rect x="330" y="70" width="240" height="80" rx="5"/><text x="450" y="100" text-anchor="middle">Transaction</text><text class="s" x="450" y="118" text-anchor="middle">set_config('hyqs.actor', …, local)</text><text class="s" x="450" y="132" text-anchor="middle">one short transaction per call</text></g>
+    <g class="tb"><rect x="610" y="70" width="240" height="80" rx="5"/><text x="730" y="100" text-anchor="middle">Table trigger</text><text class="s" x="730" y="118" text-anchor="middle">BEFORE INSERT / UPDATE / DELETE</text><text class="s" x="730" y="132" text-anchor="middle">13 tables: jobs, projects, users…</text></g>
+    <g class="tb hi"><rect x="890" y="40" width="290" height="140" rx="5"/><text x="1035" y="68" text-anchor="middle">audit_log row</text><text class="s" x="1035" y="88" text-anchor="middle">at · actor · table · row · action</text><text class="s" x="1035" y="104" text-anchor="middle">changed: {column: [old, new]}</text><text class="s" x="1035" y="124" text-anchor="middle">backend_pid · client_addr · backend_start</text><text class="s" x="1035" y="140" text-anchor="middle">(observed by the database, not self-reported)</text><text class="s" x="1035" y="162" text-anchor="middle">+ created_by / updated_by on the row</text></g>
+    <g stroke="currentColor" fill="none" stroke-width="1.4" marker-end="url(#aa)"><path d="M290 110 L330 110"/><path d="M570 110 L610 110"/><path d="M850 110 L890 110"/></g>
+    <text class="s" x="600" y="205" text-anchor="middle" font-family="IBM Plex Mono" font-size="12" fill="var(--muted)">no actor set → 'db:' || session_user, so direct SQL edits are attributed too</text>
+    <text class="s" x="600" y="225" text-anchor="middle" font-family="IBM Plex Mono" font-size="12" fill="var(--muted)">updates that change only updated_at / updated_by / lease_until write no row</text>
+  </svg><figcaption>The audit row is produced inside the database on every write to a governed table. The actor string is what the application claims; the PID, client address and backend start are what the database saw.</figcaption></figure>
+  <div class="ledger" data-deep style="margin-top:22px">
+    <div class="pr"><h4>Exposure</h4><p>Admin → Access → Audit, gated on the view-audit permission, filterable by table, actor and row, day-grouped, with same-minute bursts collapsed. The API returns the forensic columns; the screen does not yet render them.</p></div>
+    <div class="pr"><h4>Retention</h4><p>The supervisor prunes audit rows older than 90 days on every scan. That is the in-database default; a bank should stream the table to its SIEM or WORM store, and there is no export endpoint yet, so that feed is a database job today.</p></div>
+    <div class="pr"><h4>Not covered</h4><p>The usage, stage-event, log, hardware and supervisor ledgers carry no trigger and no created-by column. They are append-only by construction, but a direct database edit to them would leave no trace. Stated here so it is not discovered later.</p></div>
+  </div>
+</div></section>
+
+<section id="identity" class="reveal"><div class="wrap">
+  <div class="sec-head">
+    <div><div class="eyebrow">Identity and roles</div><h2 style="margin-top:10px">Invite-only sign-in, eight roles, twenty-four permissions, editable at runtime.</h2></div>
+    <p class="lede">Google or Apple single sign-on, refused without a pending invitation. API tokens are stored as a hash, scoped to one project, and can never satisfy a platform-wide check. Permissions live in a table, edited from the console, with a locked core so a platform admin can never remove the five that would lock everyone out. Hover a role to read it.</p>
+  </div>
+  <p class="take">Invite-only sign-in, eight roles, twenty-six permissions, editable at runtime.</p>
+  <button class="details-toggle" type="button" aria-expanded="false">Show the details</button>
+  <p class="small">The full eight-by-twenty-six matrix, hover a role to read it: <a href="/how-it-works/reference/#matrix">Reference</a>.</p>
+  <div class="principles" data-deep style="margin-top:22px">
+    <div class="pr"><h4>Three scopes</h4><p>Project scope through membership, environment scope through environment members (a client approver can hold one permission for one environment without being a project member), and platform scope for the admin permissions. One check function serves both the console and MCP.</p></div>
+    <div class="pr"><h4>Segregation by construction</h4><p>Automation clients cannot archive. Promoting to production needs a distinct permission from promoting. Applying an offered release on a client host needs yet another, held by the client. Every promotion row records who requested, who applied, when, and which job executed it.</p></div>
+    <div class="pr"><h4>Every write has a principal</h4><p>Console users, API tokens, MCP clients, workers, the supervisor and the two system services each stamp their own actor prefix, so the audit log can answer "was this a person or the machine" without a lookup.</p></div>
+  </div>
+</div></section>
+
+<section id="auditor" class="reveal alt"><div class="wrap">
+  <div class="sec-head">
+    <div><div class="eyebrow">What an auditor can ask</div><h2 style="margin-top:10px">Each question, the record that answers it, and where to get it.</h2></div>
+    <p class="lede">Open a question. Every answer names a stored record and the API or screen that returns it, so the response to a request for evidence is a query, not a reconstruction.</p>
+  </div>
+  <p class="take">Fifteen questions an auditor asks, each answered by a query rather than a reconstruction.</p>
+  <button class="details-toggle" type="button" aria-expanded="false">Show the details</button>
+  <div class="qa" data-deep id="qa"></div>
+</div></section>
+
+<div class="wrap"><div class="nextprev"><a class="prev" href="/how-it-works/console/"><span class="eyebrow">← Previous</span><b>The console</b></a><a class="next" href="/how-it-works/economics/"><span class="eyebrow">Next chapter →</span><b>Economics</b></a></div></div>
+<footer><div class="wrap"><span>Hyqs · autonomous SDLC pipeline · figures from the live ledger, 6 September 2026</span><span>Every mechanism on these pages is cited to a source file in the Hyqs repository.</span></div></footer>
+<script src="/how-it-works/assets/site.js"></script>
+<script>
+(function(){
+  const PERMS=["queue_job","cancel_job","retry_job","archive_job","edit_job_deps","resolve_job","propose_backlog","triage_backlog","edit_project","edit_agents","manage_members","manage_api_tokens","manage_webhooks","delete_project","create_project","manage_users","manage_invitations","manage_roles","manage_providers","view_fleet","view_audit","deploy.view","deploy.promote","deploy.offer","deploy.promote_prod","deploy.apply"];
+  const ROLES={
+    viewer:{d:"Read a project, propose backlog items, see deployments.",p:["propose_backlog","deploy.view"]},
+    contributor:{d:"File, cancel, retry, archive and resolve jobs; edit dependencies; propose to the backlog.",p:["queue_job","cancel_job","retry_job","archive_job","edit_job_deps","resolve_job","propose_backlog"]},
+    project_admin:{d:"Contributor plus project settings, roster, members, backlog triage, webhooks, API tokens, promote and offer releases.",p:["queue_job","cancel_job","retry_job","archive_job","edit_project","edit_agents","edit_job_deps","resolve_job","manage_members","propose_backlog","triage_backlog","manage_api_tokens","manage_webhooks","deploy.promote","deploy.offer"]},
+    platform_admin:{d:"Everything, including users, invitations, roles, providers, fleet, audit, production promotion and apply. Five of these cannot be removed from the role.",p:PERMS},
+    automation_client:{d:"Unattended orchestration: file, cancel, retry, resolve, edit dependencies. Deliberately no archive.",p:["queue_job","cancel_job","retry_job","edit_job_deps","resolve_job"]},
+    release_manager:{d:"Promote and offer releases to non-production environments.",p:["deploy.promote","deploy.offer","deploy.view"]},
+    prod_promoter:{d:"Release manager plus promotion to production.",p:["deploy.promote","deploy.offer","deploy.view","deploy.promote_prod"]},
+    client_approver:{d:"Apply an offered release on the client's own host. Environment-scoped.",p:["deploy.apply","deploy.view"]},
+  };
+  const m=document.getElementById("matrix");if(m){
+  let h='<table><thead><tr><th>Permission</th>'+Object.keys(ROLES).map(r=>`<th title="${ROLES[r].d}">${r}</th>`).join("")+'</tr></thead><tbody>';
+  PERMS.forEach(p=>{h+=`<tr><td class="mono">${p}</td>`+Object.keys(ROLES).map(r=>`<td class="${ROLES[r].p.includes(p)?"y":"n"}">${ROLES[r].p.includes(p)?"✓":"·"}</td>`).join("")+"</tr>";});
+  h+="</tbody></table>";m.innerHTML=h;
+  m.querySelectorAll("th[title]").forEach((th,i)=>{th.style.cursor="help";});}
+  const Q=[
+    ["Who changed this job, project, user or permission, when, and from what to what?","audit_log plus created_by and updated_by on the row","GET /api/admin/audit?table=&row_pk= (view_audit); Admin → Access → Audit","Per-column old and new values, truncated to 300 characters each."],
+    ["Was the change made by a person, a worker, the supervisor, or out-of-band SQL?","audit_log.actor prefix","same","user:, apitoken:, mcp:, worker:, supervisor:, system:, db:"],
+    ["Can the actor string be trusted?","audit_log.backend_pid, client_addr, backend_start","API only, not rendered yet","Observed by the database about the connection, independent of what the application claims."],
+    ["Who filed this job and through which channel?","jobs.source, source_actor, source_meta","GET /api/jobs/filed-by-breakdown (view_audit); job detail Overview","Client address, browser and role are kept for console filings."],
+    ["What did this job cost, by stage, model and provider?","usage","GET /api/jobs/{id}/usage; Cost tab","Four token classes priced per model; cost from the SDK when it reports one."],
+    ["What did each stage do, how long, at what cost?","job_events with structured detail","GET /api/jobs/{id}/events; MCP job_events; Stages tab","Plan stories, commits and patches, test output, gate findings and verdicts."],
+    ["What hardware did it use?","resource_usage","GET /api/jobs/{id}/resources; Hardware tab","cgroup v2 via a transient systemd scope per subprocess."],
+    ["What automated remediation touched it?","supervisor_events","GET /api/jobs/{id}/events; MCP job_supervisor_events; Resolution tab","Classification, requeues, filed fix jobs, dead-letters, escalations."],
+    ["Why was this change made?",".hyqs/decisions/<job>-<slug>.md in the repository","GET /api/projects/{id}/decisions; History → Changelog → Why","Committed on merge, versioned in your own git history."],
+    ["What is live in production and what triggered it?","deploys register","GET /api/projects/{id}/deploy-status, /changelog; Overview badge","Commit, previous commit, trigger, verified, image digest, signed."],
+    ["Is production behind the main branch?","live origin comparison against deploys","GET /api/projects/{id}/deploy-status → is_stale; Overview","The supervisor also alerts after six hours of drift."],
+    ["How reliable is the automation itself?","jobs filtered to auto-deploy operations","GET /api/deployment-reliability (view_audit); Usage and cost","Total, done, failed, cancelled, failure rate per project."],
+    ["Delivery rate, cycle time, slowest stage?","job_events and jobs","/performance/headline, /stage-stats, /slowest-jobs; MCP project_performance; Analytics","p50 and p95 per stage; operational jobs excluded by default and stated."],
+    ["Who visited the public site?","page_views, no IP stored","GET /api/admin/page-views (view_audit); Usage and cost","Daily-rotating salted hash; country and city from a local database."],
+    ["What ran at 03:00 on host X?","JSON logs with job_id, stage, project_id bound; workers heartbeats","journald; GET /api/workers","One JSON line per record from every process."],
+  ];
+  const qa=document.getElementById("qa");
+  qa.innerHTML=Q.map(([q,r,a,n])=>`<details><summary>${q}</summary><div class="body"><dl><dt>Record</dt><dd>${r}</dd><dt>Access</dt><dd><span class="mono">${a}</span></dd><dt>Note</dt><dd>${n}</dd></dl></div></details>`).join("");
+})();
+
+</script>
+</body>
+</html>

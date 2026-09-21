@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["verdict", "summary"],
+  "properties": {
+    "verdict": {"type": "string", "enum": ["pass", "fail"]},
+    "summary": {"type": "string"},
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["severity", "note"],
+        "properties": {
+          "severity": {"type": "string"},
+          "note": {"type": "string"},
+          "path": {"type": "string"}
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": true
+}

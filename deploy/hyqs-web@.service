@@ -1,0 +1,38 @@
+[Unit]
+# Templated web console so a blue-green self-deploy (deploy/release.sh) can
+# start a new generation of the web process alongside the currently running
+# one before stopping it, gapless — the same pattern deploy/hyqs-pipeline@.service
+# uses for pipeline workers. The instance name (%i) is just a label; the
+# process's listening socket sets SO_REUSEPORT (hyqs/web/app.py's serve())
+# so both generations can bind HYQS_WEB_PORT concurrently.
+Description=Hyqs web console #%i (Starlette JSON+SSE API + React UI)
+After=network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=60
+StartLimitBurst=5
+
+[Service]
+Type=simple
+# --- EDIT ME ---------------------------------------------------------------
+# cwd is the home dir, not the repo, so relative paths never resolve against
+# the main checkout — same convention as hyqs-pipeline@.service.
+WorkingDirectory=%h
+# Absolute path to uv: systemd's ExecStart binary lookup does NOT use the
+# Environment= PATH below, so a bare `uv` fails with status=203/EXEC.
+# --project: cwd is %h (above), so uv must be told where the repo env lives.
+ExecStart=%h/.local/bin/uv run --project %h/hyqs-ai hyqs-web
+# ---------------------------------------------------------------------------
+
+Environment=PATH=%h/.local/bin:/usr/local/bin:/usr/bin:/bin
+
+# Keep it alive: restart on any exit (crash-loop backoff lives in [Unit]).
+Restart=always
+RestartSec=5
+
+# Logs go to the journal: `journalctl --user -u hyqs-web@1 -f`.
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=hyqs-web@%i
+
+[Install]
+WantedBy=default.target

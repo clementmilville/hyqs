@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["summary", "rationale", "jobs"],
+  "properties": {
+    "summary": {"type": "string"},
+    "rationale": {"type": "string"},
+    "jobs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["title", "idea", "depends_on", "priority", "scope"],
+        "properties": {
+          "title": {"type": "string"},
+          "idea": {"type": "string"},
+          "depends_on": {
+            "type": "array",
+            "items": {"type": "integer"}
+          },
+          "priority": {"type": "integer"},
+          "scope": {
+            "type": "object",
+            "required": ["allowed_paths", "interfaces"],
+            "properties": {
+              "allowed_paths": {
+                "type": "array",
+                "items": {"type": "string"}
+              },
+              "interfaces": {"type": "string"}
+            },
+            "additionalProperties": true
+          }
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": true
+}

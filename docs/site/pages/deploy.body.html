@@ -1,0 +1,110 @@
+<section id="projects"><div class="wrap">
+  <div class="sec-head">
+    <div><div class="eyebrow">A project's first minute</div><h2 style="margin-top:10px">Register a repository, or let the interview provision one that already deploys.</h2></div>
+    <p class="lede">Three doors: register an existing repository, provision a new one from a blueprint, or confirm an intake interview that does the provisioning for you. A provisioned project gets a private GitHub repository, an initial commit, a deterministic port, an nginx virtual host, and a compose file that already respects the shared-host contract.</p>
+  </div>
+  <div class="ledger">
+    <div class="pr"><h4>What a blueprint scaffolds</h4><p>README, a conventions file, a gitignore that blocks every env file, a Dockerfile, an env example, and a compose file that binds the web port to loopback only, drops all capabilities, forbids privilege escalation, runs as an unprivileged user and caps memory and CPU. The fastapi blueprint adds a health endpoint and a real test.</p></div>
+    <div class="pr"><h4>Port and vhost</h4><p>The port is 8100 plus the project id, so it never collides and needs no registry. The vhost is rendered per domain, validated with an nginx test before it is committed, removed again if validation fails, and only then reloaded, under a sudo rule narrowed to exactly those two commands.</p></div>
+    <div class="pr"><h4>Rollback on failure</h4><p>Any failure in scaffolding, the initial commit or GitHub creation deletes the half-made repository so nothing survives in an undefined state.</p></div>
+  </div>
+  <p class="small" style="margin-top:14px">Every deploy_config key with its default: <a href="/how-it-works/reference/#deployconfig">Reference</a>.</p>
+</div></section>
+
+<section id="modes"><div class="wrap">
+  <div class="sec-head">
+    <div><div class="eyebrow">Deploy modes</div><h2 style="margin-top:10px">Five ways to ship. Pick one to see its gates, in order.</h2></div>
+    <p class="lede">The deploy stage first syncs the checkout fast-forward only, refusing if it is dirty, then dispatches on what the project is: the platform itself, a command, a single container, a compose stack, or a signed release pulled by digest. Every mode ends with the same question, did the service come live, and a no is a failed job, never a rollback.</p>
+  </div>
+  <div class="widget">
+    <div class="modes" id="modes">
+      <button class="chipbtn" data-m="release" aria-pressed="true">release.sh (the platform)</button>
+      <button class="chipbtn" data-m="cmd" aria-pressed="false">HYQS_DEPLOY_CMD</button>
+      <button class="chipbtn" data-m="single" aria-pressed="false">Single container</button>
+      <button class="chipbtn" data-m="compose" aria-pressed="false">Compose stack</button>
+      <button class="chipbtn" data-m="pull" aria-pressed="false">Pull by digest</button>
+    </div>
+    <div id="modeBody"></div>
+  </div>
+</div></section>
+
+<section id="probe"><div class="wrap">
+  <div class="sec-head">
+    <div><div class="eyebrow">Probe-first cutover</div><h2 style="margin-top:10px">The last-good container keeps serving until the new one has proved itself three times.</h2></div>
+    <p class="lede">A single-container deploy never replaces what is running until a throwaway probe of the new image has started, answered its health URL and exposed every declared environment variable. The probe has no port, no restart policy, all capabilities dropped, and a disposable copy of the data directory so a migration cannot touch live data.</p>
+  </div>
+  <figure class="topo"><svg viewBox="0 0 1200 300" role="img" aria-label="Probe-first cutover: build image; start a probe container with a snapshot of the data directory and no port; gate one running; gate two HTTP health on the container IP; gate three required env present; only then remove the old container and start the new one on the loopback port; on any failure the old container is untouched.">
+    <defs><marker id="pa" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="currentColor"/></marker></defs>
+    <g class="tb"><rect x="20" y="90" width="150" height="60" rx="5"/><text x="95" y="115" text-anchor="middle">docker build</text><text class="s" x="95" y="133" text-anchor="middle">300 s cap</text></g>
+    <g class="tb hi"><rect x="210" y="70" width="220" height="100" rx="5"/><text x="320" y="96" text-anchor="middle">Probe container</text><text class="s" x="320" y="114" text-anchor="middle">no port · no restart policy</text><text class="s" x="320" y="128" text-anchor="middle">cap-drop ALL · no-new-privileges</text><text class="s" x="320" y="142" text-anchor="middle">/data = throwaway snapshot</text><text class="s" x="320" y="156" text-anchor="middle">memory + cpu limits</text></g>
+    <g class="tb"><rect x="470" y="40" width="140" height="44" rx="5"/><text x="540" y="60" text-anchor="middle">Gate 1</text><text class="s" x="540" y="76" text-anchor="middle">state = running</text></g>
+    <g class="tb"><rect x="470" y="98" width="140" height="44" rx="5"/><text x="540" y="118" text-anchor="middle">Gate 2</text><text class="s" x="540" y="134" text-anchor="middle">HTTP health &lt; 500</text></g>
+    <g class="tb"><rect x="470" y="156" width="140" height="44" rx="5"/><text x="540" y="176" text-anchor="middle">Gate 3</text><text class="s" x="540" y="192" text-anchor="middle">required env present</text></g>
+    <g class="tb hi"><rect x="660" y="90" width="230" height="60" rx="5"/><text x="775" y="112" text-anchor="middle">Replace canonical</text><text class="s" x="775" y="130" text-anchor="middle">loopback port · auto-restart</text></g>
+    <g class="tb"><rect x="930" y="90" width="250" height="60" rx="5"/><text x="1055" y="112" text-anchor="middle">Register + sign</text><text class="s" x="1055" y="130" text-anchor="middle">deploys row · sign (best effort)</text></g>
+    <g stroke="currentColor" fill="none" stroke-width="1.4" marker-end="url(#pa)"><path d="M170 120 L210 120"/><path d="M430 100 L470 62"/><path d="M430 120 L470 120"/><path d="M430 140 L470 178"/><path d="M610 62 L660 108"/><path d="M610 120 L660 120"/><path d="M610 178 L660 132"/><path d="M890 120 L930 120"/></g>
+    <text x="440" y="230" text-anchor="middle" font-family="IBM Plex Mono" font-size="12" fill="var(--fail)">any gate fails → probe removed, logs captured, old container untouched, job fails at DEPLOY</text>
+    <text x="1000" y="230" text-anchor="middle" font-family="IBM Plex Mono" font-size="12" fill="var(--muted)">probe and snapshot always removed</text>
+    <text x="600" y="270" text-anchor="middle" font-family="IBM Plex Mono" font-size="12" fill="var(--accent)">a failed deploy never enters the fix loop: the supervisor files a fix-forward job on main, capped at three per project</text>
+  </svg><figcaption>The compose mode is the one exception: it is an in-place up with build, so its gates run after the fact, which is why the probe path is the recommended one for a single service.</figcaption></figure>
+</div></section>
+
+<section id="promotion"><div class="wrap">
+  <div class="sec-head">
+    <div><div class="eyebrow">Environments and promotions</div><h2 style="margin-top:10px">Build once, promote by digest. Push to your environments, offer to a client's.</h2></div>
+    <p class="lede">Every project has an implicit production environment on auto-deploy, which is why a single-environment project behaves as before. Add environments and a release becomes a signed image addressed by digest that is promoted, not rebuilt. A promotion is a ledger row with a validated state machine; click a state to see what may follow it.</p>
+  </div>
+  <div class="versus">
+    <figure class="topo sm" id="smFig"><svg viewBox="0 0 640 300" role="img" aria-label="Promotion state machine: dispatched or available to deploying, then deployed or failed; available may be declined; any non-terminal state may be superseded.">
+      <defs><marker id="sa" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="currentColor"/></marker></defs>
+      <g class="st" data-s="DISPATCHED"><rect x="20" y="40" width="150" height="44" rx="5"/><text x="95" y="66" text-anchor="middle">DISPATCHED</text></g>
+      <g class="st" data-s="AVAILABLE"><rect x="20" y="180" width="150" height="44" rx="5"/><text x="95" y="206" text-anchor="middle">AVAILABLE</text></g>
+      <g class="st" data-s="DEPLOYING"><rect x="250" y="110" width="150" height="44" rx="5"/><text x="325" y="136" text-anchor="middle">DEPLOYING</text></g>
+      <g class="st term" data-s="DEPLOYED"><rect x="470" y="40" width="150" height="44" rx="5"/><text x="545" y="66" text-anchor="middle">DEPLOYED</text></g>
+      <g class="st term" data-s="FAILED"><rect x="470" y="110" width="150" height="44" rx="5"/><text x="545" y="136" text-anchor="middle">FAILED</text></g>
+      <g class="st term" data-s="DECLINED"><rect x="470" y="180" width="150" height="44" rx="5"/><text x="545" y="206" text-anchor="middle">DECLINED</text></g>
+      <g class="st term" data-s="SUPERSEDED"><rect x="250" y="240" width="150" height="44" rx="5"/><text x="325" y="266" text-anchor="middle">SUPERSEDED</text></g>
+      <g marker-end="url(#sa)">
+        <path class="ed" data-e="DISPATCHED-DEPLOYING" d="M170 62 L250 122"/>
+        <path class="ed" data-e="AVAILABLE-DEPLOYING" d="M170 202 L250 142"/>
+        <path class="ed" data-e="DEPLOYING-DEPLOYED" d="M400 122 L470 62"/>
+        <path class="ed" data-e="DEPLOYING-FAILED" d="M400 132 L470 132"/>
+        <path class="ed" data-e="AVAILABLE-DECLINED" d="M170 210 L470 206"/>
+        <path class="ed" data-e="DISPATCHED-SUPERSEDED" d="M95 84 C 95 260, 200 262, 250 262"/>
+        <path class="ed" data-e="AVAILABLE-SUPERSEDED" d="M170 218 L250 254"/>
+        <path class="ed" data-e="DEPLOYING-SUPERSEDED" d="M325 154 L325 240"/>
+      </g>
+      <text class="el" x="95" y="30" text-anchor="middle">promote: our push</text>
+      <text class="el" x="95" y="172" text-anchor="middle">offer: client applies</text>
+    </svg><figcaption id="smCap">Click a state.</figcaption></figure>
+    <div>
+      <div class="pr"><h4>Promote</h4><p>Our-side push. Supersedes prior promotions on the target, creates the row as dispatched, and enqueues a deploy-only job carrying environment, release and promotion ids. Promoting the release that is already current is a no-op. Production targets require the separate promote-to-production permission.</p></div>
+      <div class="pr"><h4>Offer</h4><p>Client-initiated apply. Creates the row as available and enqueues nothing. On the client's host, <span class="mono">hyqs-pipeline apply</span> finds the offer for its enrolled environments, pulls by digest, verifies the signature, checks the declared secrets exist locally, and runs the same probe-first cutover. The client can decline with a recorded reason. Secret values never leave the client host.</p></div>
+      <div class="pr"><h4>The ledger row</h4><p>Project, release, target environment, kind, state, who requested and when, who applied and when, and the deploy job that executed it. Not built yet: a console screen for environments and promotions; today this surface is the CLI and MCP.</p></div>
+    </div>
+  </div>
+</div></section>
+
+<section id="supply"><div class="wrap">
+  <div class="sec-head">
+    <div><div class="eyebrow">Supply chain and secrets</div><h2 style="margin-top:10px">The reviewed commit, the signed digest and the deployed digest are the same artefact.</h2></div>
+    <p class="lede">A private OCI registry with two accounts, one that can push and one that can only read. Images are signed on the build host and verified on the deploy host with a public key that fails closed when absent. Secrets are declared in the repository and checked for presence on the host, never read into the control plane.</p>
+  </div>
+  <div class="principles">
+    <div class="pr"><h4>Registry and signing</h4><p>Zot, bound to loopback behind nginx, chosen for native referrers so signatures live beside images. Push credentials and the signing key exist only on the build host; pull credentials and the public key only on deploy hosts. A five-step smoke check proves the two accounts are scoped correctly, ending with a pull by digest that must match the push.</p></div>
+    <div class="pr"><h4>Secrets contract</h4><p>A repository declares the secrets a release needs with owner, required flag and a format regex. Before a pulled release is cut over, the host checks each name resolves and matches its format from a local env file. Values are never returned, logged or persisted. A required-env manifest additionally checks the running container's environment, catching a variable set on the host but never mapped into a service.</p></div>
+    <div class="pr"><h4>Leak prevention</h4><p>Compose deploys pass an allow-listed environment only, so the pipeline's own database password or model keys can never reach a project container through variable substitution. The installer for a client host creates the secrets directory with owner-only permissions and never sets a value itself.</p></div>
+  </div>
+</div></section>
+
+<section id="ops"><div class="wrap">
+  <div class="sec-head">
+    <div><div class="eyebrow">Running it</div><h2 style="margin-top:10px">Deployed is not the same as serving. The runtime screen tells the difference.</h2></div>
+    <p class="lede">Three independent signals are combined for every application: container state from Docker, a single public health probe, and a three-way port comparison between configuration, the container's published port and the nginx vhost. The last one catches the dead-port misroute where the container is alive but traffic goes elsewhere, and prints the fix command.</p>
+  </div>
+  <div class="versus">
+    <div class="pr"><h4>Controls</h4><ul><li><strong>Deploy now</strong> and <strong>restart</strong> file a deploy-only job through the same health-gated path; a restart is never a raw destroy-and-recreate.</li><li><strong>Stop</strong> requires the queue permission, an explicit confirmation, and is logged with project, actor and mode.</li><li><strong>Start</strong> reuses the same secrets link and environment allow-list as deploy so nothing drifts.</li><li><strong>Logs</strong> per compose service, validated against the service list, tail capped at 500.</li><li><strong>Resync vhost</strong> re-applies the virtual host idempotently, via MCP.</li></ul></div>
+    <div class="pr"><h4>Housekeeping the supervisor does</h4><ul><li>Finalises deploying jobs whose fleet restarted, by ancestry of the deployed commit rather than equality, so a later merge does not strand them.</li><li>Removes containers of inactive jobs and dead probe containers; leaves a live probe alone.</li><li>Prunes the build cache every six hours with a 72-hour grace, after the cache once reached 133 GB.</li><li>Removes images of inactive jobs, never base images.</li><li>Alerts when an application has trailed the main branch for six hours, at most once per twelve.</li></ul></div>
+  </div>
+  <div class="callout" style="margin-top:22px"><p><strong>Designed, not built.</strong> Air-gapped installation and per-host pull credentials are marked as future work; today's tier is connected hosts. Environments and promotions have no console screen. Runtime lifecycle actions are logged, not written to the audit table. Host key rotation has no path yet. These are stated on the regulated-industries page as well.</p></div>
+</div></section>

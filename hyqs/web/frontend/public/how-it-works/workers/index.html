@@ -1,0 +1,291 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Executors, the elected supervisor and the host-pinned deployer: topology, scaling, the per-project agent roster and tool policies.">
+<meta name="robots" content="noindex">
+<meta name="color-scheme" content="light dark">
+<title>Workers and the control plane</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,300..800&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="/how-it-works/assets/site.css">
+<script>try{var t=localStorage.getItem("hyqs-site-theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t);}catch(e){}</script>
+</head>
+<body data-read="skim" data-chapter="workers">
+<div class="progress" aria-hidden="true"><i></i></div><div class="rail"><div class="wrap"><a class="brand" href="/how-it-works/"><i></i>Hyqs</a><nav aria-label="Chapters"><a class="chap" href="/how-it-works/pipeline/">Pipeline</a><a class="chap on" href="/how-it-works/workers/"><b>1</b>Workers</a><a class="chap" href="/how-it-works/intake/"><b>2</b>Intake</a><a class="chap" href="/how-it-works/console/"><b>3</b>Console</a><a class="chap" href="/how-it-works/evidence/"><b>4</b>Evidence</a><a class="chap" href="/how-it-works/economics/"><b>5</b>Economics</a><a class="chap" href="/how-it-works/deploy/"><b>6</b>Deploy</a><a class="chap" href="/how-it-works/regulated/"><b>7</b>Regulated</a><a class="chap" href="/how-it-works/reference/"><b>8</b>Reference</a></nav><div class="ctl" role="group" aria-label="Reading mode"><button class="mode" data-mode="skim" aria-pressed="true" title="One takeaway per section; open details where you want them">Skim</button><button class="mode" data-mode="deep" aria-pressed="false" title="Everything unfolded">Deep</button><a class="present" href="/how-it-works/deck/" title="A fourteen-slide summary that stands on its own">Deck</a><button class="theme" id="themeBtn" title="Switch between light and dark" aria-label="Switch theme">☾</button></div></div></div>
+<header class="chapter-hero"><div class="wrap"><div class="eyebrow">Chapter 1 of 8</div><h1 style="margin-top:12px">Workers and the control plane</h1><p class="lede">What runs the pipeline, and how do you size and configure it?</p></div></header>
+<aside class="story" aria-label="One job, followed across chapters"><div class="wrap"><div class="story-head"><span class="eyebrow">Follow one change · job #4244</span><a class="small" href="/how-it-works/console/">see it in the console →</a></div><div class="strip"><span class="chip"><b>Filed</b><small>19:42</small></span><span class="chip on"><b>Claimed</b><small>19:59</small></span><span class="chip"><b>Plan</b><small>2 min</small></span><span class="chip"><b>Build</b><small>9 min</small></span><span class="chip"><b>Lint</b><small>5 s</small></span><span class="chip"><b>Test</b><small>11 s</small></span><span class="chip"><b>Review</b><small>pass</small></span><span class="chip"><b>Security</b><small>✗ stop</small></span><span class="chip"><b>Fix</b><small>2 min</small></span><span class="chip"><b>Re-verify</b><small>✓ ✓ ✓</small></span><span class="chip"><b>Merge</b><small>20:18</small></span><span class="chip on"><b>Deploy</b><small>20:19</small></span><span class="chip"><b>Live</b><small>20:19:53</small></span></div><p>Slot 0 of the single eight-slot process claimed #4244 at 19:59:24 with the roster's Coder (Sonnet 5) agent and held it through the fix. The deploy step was claimed by slot 7 at 20:19:07. Both claims are audit rows with the slot id as actor.</p></div></aside>
+<section id="topology" class="reveal"><div class="wrap">
+  <div class="sec-head">
+    <div><div class="eyebrow">Topology</div><h2 style="margin-top:10px">Symmetric workers, one database, no broker.</h2></div>
+    <p class="lede">A worker is a plain process that claims jobs from a shared database under one advisory lock. There is no scheduler service, no message queue and no agent daemon. Run one process on a laptop or thirty across ten hosts; the claim is the same. Only one thing is elected, the supervisor, and only one thing is pinned, the deployer.</p>
+  </div>
+  <p class="take">Three worker types and one database. Nothing is elected but the supervisor; nothing is pinned but the deployer.</p>
+  <button class="details-toggle" type="button" aria-expanded="false">Show the details</button>
+  <div class="topo"><figure>
+    <svg viewBox="0 0 1400 440" role="img" aria-label="Topology: console and MCP endpoint, build workers and the elected supervisor share one database; workers push branches to the git remote and signed images to the registry, and call the model providers; a host-pinned deployer claims deploy jobs from the database, pulls images by digest and cuts over the application containers after a health probe.">
+      <defs><marker id="ta" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="currentColor"/></marker></defs>
+      <rect class="zone" x="20" y="20" width="900" height="400" rx="8"/><text class="zl" x="36" y="44">YOUR PERIMETER · BUILD PLANE</text>
+      <rect class="zone" x="940" y="20" width="440" height="150" rx="8"/><text class="zl" x="956" y="44">EXTERNAL · MODEL PROVIDERS</text>
+      <rect class="zone" x="940" y="200" width="440" height="220" rx="8"/><text class="zl" x="956" y="224">PRODUCTION / CLIENT HOSTS · DEPLOY PLANE</text>
+      <g class="tb hi"><rect x="50" y="70" width="200" height="60" rx="5"/><text x="150" y="95" text-anchor="middle">Console + MCP</text><text class="s" x="150" y="113" text-anchor="middle">invite-only SSO · OAuth 2.1</text></g>
+      <g class="tb"><rect x="300" y="70" width="220" height="60" rx="5"/><text x="410" y="95" text-anchor="middle">Build workers × N</text><text class="s" x="410" y="113" text-anchor="middle">any host · 90 s lease</text></g>
+      <g class="tb"><rect x="50" y="320" width="200" height="60" rx="5"/><text x="150" y="345" text-anchor="middle">Supervisor (elected)</text><text class="s" x="150" y="363" text-anchor="middle">advisory lock · scan 120 s</text></g>
+      <g class="tb hi"><rect x="300" y="200" width="220" height="80" rx="5"/><text x="410" y="228" text-anchor="middle">Database</text><text class="s" x="410" y="246" text-anchor="middle">jobs · leases · locks · events</text><text class="s" x="410" y="262" text-anchor="middle">audit log · usage ledger</text></g>
+      <g class="tb"><rect x="570" y="200" width="200" height="60" rx="5"/><text x="670" y="225" text-anchor="middle">Git remote</text><text class="s" x="670" y="243" text-anchor="middle">PR per job · squash-merge</text></g>
+      <g class="tb"><rect x="570" y="320" width="200" height="60" rx="5"/><text x="670" y="345" text-anchor="middle">Private registry</text><text class="s" x="670" y="363" text-anchor="middle">signed · by digest</text></g>
+      <g class="tb ai"><rect x="970" y="70" width="170" height="56" rx="5"/><text x="1055" y="94" text-anchor="middle">Claude</text><text class="s" x="1055" y="112" text-anchor="middle">Agent SDK</text></g>
+      <g class="tb ai"><rect x="1190" y="70" width="170" height="56" rx="5"/><text x="1275" y="94" text-anchor="middle">Codex</text><text class="s" x="1275" y="112" text-anchor="middle">CLI · own quota</text></g>
+      <g class="tb"><rect x="970" y="250" width="380" height="50" rx="5"/><text x="1160" y="272" text-anchor="middle">Your application containers</text><text class="s" x="1160" y="289" text-anchor="middle">loopback port · behind nginx</text></g>
+      <g class="tb hi"><rect x="970" y="330" width="380" height="60" rx="5"/><text x="1160" y="354" text-anchor="middle">Deployer (host-pinned)</text><text class="s" x="1160" y="372" text-anchor="middle">deploy step only · pull creds · public key</text></g>
+      <g stroke="currentColor" fill="none" stroke-width="1.4" marker-end="url(#ta)">
+        <path d="M150 130 L300 232"/>
+        <path d="M410 130 L410 200"/>
+        <path d="M250 350 L300 266"/>
+        <path d="M520 120 L600 200"/>
+        <path d="M505 130 L610 320"/>
+        <path d="M520 100 L940 100" stroke-dasharray="2 4"/>
+        <path d="M770 355 L970 358" stroke-dasharray="5 4"/>
+        <path d="M410 280 L410 408 L1080 408 L1080 390" stroke-dasharray="1 3"/>
+        <path d="M1160 330 L1160 300"/>
+      </g>
+      <text class="el" x="600" y="160" text-anchor="middle" font-family="IBM Plex Mono" font-size="12" fill="var(--muted)">push branch · open PR</text>
+      <text class="el" x="466" y="300" text-anchor="start" font-family="IBM Plex Mono" font-size="12" fill="var(--muted)">push + sign</text>
+      <text class="el" x="730" y="90" text-anchor="middle" font-family="IBM Plex Mono" font-size="12" fill="var(--ochre)">model calls · the only external flow</text>
+      <text class="el" x="870" y="345" text-anchor="middle" font-family="IBM Plex Mono" font-size="12" fill="var(--muted)">pull by digest · verify</text>
+      <text class="el" x="745" y="402" text-anchor="middle" font-family="IBM Plex Mono" font-size="12" fill="var(--accent)">claims deploy jobs pinned to its host</text>
+      <text class="el" x="1175" y="318" text-anchor="start" font-family="IBM Plex Mono" font-size="12" fill="var(--pass)">probe, then cut over</text>
+    </svg>
+    <figcaption>Build workers, the console and the supervisor coordinate only through the database. Workers push branches to the git remote and signed images to the registry, and are the only thing that talks to a model provider. The deployer is a constrained worker on the production or client host: it claims the deploy step for its own enrolled host, pulls by digest with pull-only credentials, verifies the signature with a public key, and never constructs an AI backend.</figcaption>
+  </figure></div>
+  <div class="principles" data-deep style="margin-top:22px">
+    <div class="pr"><h4>Executor</h4><p>An async slot inside a <code>hyqs-pipeline</code> process. Claims any stage for any project it has capacity for, holds a 90-second lease renewed every 30 seconds, and runs one stage at a time. Dies, and its job is reclaimed by the next claim on any host.</p></div>
+    <div class="pr"><h4>Supervisor</h4><p>Runs inside every pipeline process but is a singleton fleet-wide: a database session-level advisory lock elects one leader, standbys retry every 30 seconds. Every 120 seconds it reclaims orphaned slots, classifies failed jobs and applies bounded remediations. It never calls a model to decide anything.</p></div>
+    <div class="pr"><h4>Deployer</h4><p><code>hyqs-pipeline --deployer</code>: a constrained worker that claims only the deploy step, only for environments pinned to its enrolled host, and refuses to start without a host name. It never constructs an AI backend and carries no model credential.</p></div>
+  </div>
+</div></section>
+
+<section id="scale" class="reveal alt"><div class="wrap">
+  <div class="sec-head">
+    <div><div class="eyebrow">Sizing</div><h2 style="margin-top:10px">Three scaling axes that compose. One roster that caps them.</h2></div>
+    <p class="lede">Slots per process, processes per host, hosts per fleet. Every combination shares the same database and the same claim. What actually runs in parallel for a project is then capped by its agent roster, so capacity is a policy you edit in the console, not a deployment you redo.</p>
+  </div>
+  <p class="take">Slots times processes times hosts, then capped by a roster you edit in the console.</p>
+  <div class="widget">
+    <h4>Fleet sizing</h4><p class="hint">Move the sliders. The figures are what the claim loop would see. The live fleet today is one process with eight slots on one host, plus the supervisor.</p>
+    <div class="ctrls">
+      <div><label for="sSlots">Slots per process</label><output id="oSlots">8</output><input id="sSlots" type="range" min="1" max="16" value="8"><span class="small">HYQS_PIPELINE_CONCURRENCY</span></div>
+      <div><label for="sProcs">Processes per host</label><output id="oProcs">1</output><input id="sProcs" type="range" min="1" max="8" value="1"><span class="small">hyqs-pipeline@1…N units</span></div>
+      <div><label for="sHosts">Hosts</label><output id="oHosts">1</output><input id="sHosts" type="range" min="1" max="10" value="1"><span class="small">same HYQS_DB_URL, TLS, private network</span></div>
+      <div><label for="sRoster">Roster capacity for one project</label><output id="oRoster">2</output><input id="sRoster" type="range" min="1" max="24" value="2"><span class="small">Σ max_concurrency of its enabled agents</span></div>
+    </div>
+    <div class="result">
+      <div><b id="rSlots">8</b><small>executor slots fleet-wide</small></div>
+      <div><b id="rSup">1 + 0</b><small>supervisor leader + standbys</small></div>
+      <div><b id="rProj">2</b><small>parallel jobs this project can run</small></div>
+      <div><b id="rBound">roster</b><small>what binds first</small></div>
+    </div>
+  </div>
+</div></section>
+
+<section id="roster" class="reveal"><div class="wrap">
+  <div class="sec-head">
+    <div><div class="eyebrow">The agent roster</div><h2 style="margin-top:10px">An agent is a row: provider, model, the tasks it may take, and how many at once.</h2></div>
+    <p class="lede">Each project keeps its own roster. At claim time the runner picks the lowest-id enabled agent that lists the needed task, whose provider is not paused, and that still has concurrency left. Pinning a stronger model to review and a cheaper one to build is two rows, not a code change. Running Claude and Codex side by side is two rows with different providers.</p>
+  </div>
+  <p class="take">A stronger model for review and a cheaper one for build is two rows, not a code change.</p>
+  <button class="details-toggle" type="button" aria-expanded="false">Show the details</button>
+  <div class="widget">
+    <h4>Roster editor</h4><p class="hint">This mirrors the console's Agents panel with the real roster of the Hyqs project. Toggle tasks, change concurrency, disable an agent, and read what each stage can draw on.</p>
+    <div class="tbl"><table id="rosterTbl">
+      <thead><tr><th>Agent</th><th>Provider</th><th>Model</th><th>plan</th><th>build</th><th>fix</th><th>review</th><th>security</th><th>Max concurrency</th><th>Enabled</th></tr></thead>
+      <tbody></tbody>
+    </table></div>
+    <div class="result" id="rosterOut"></div>
+    <p class="small" style="margin-top:12px">Deterministic steps (lint, test, merge, deploy) need no agent. The design-review and merge-verify gates draw on the <em>review</em> task. A provider hitting its limit pauses only that provider's rows; the others keep claiming.</p>
+  </div>
+  <div class="versus" data-deep style="margin-top:22px">
+    <div class="pr"><h4>How a claim is decided, in order</h4>
+      <ol class="steps" style="margin:10px 0 0;padding:0">
+        <li><b>Reclaim the dead.</b> Any running job whose lease expired goes back to pending, owner cleared.</li>
+        <li><b>Select candidates.</b> Pending jobs whose dependencies are done or resolved and whose rebase backoff has elapsed, ordered by effective priority then id. At most 50 are considered.</li>
+        <li><b>Skip collisions.</b> A job whose declared file scope overlaps a running job's scope waits.</li>
+        <li><b>Apply worker limits.</b> A deploy-only worker takes deploy steps only; a pinned environment's deploy step goes only to its host.</li>
+        <li><b>Pick an agent.</b> Lowest-id enabled agent with the task, provider not paused, running below its cap. Deterministic steps skip this.</li>
+        <li><b>Write the lease.</b> Status running, owner, lease, agent and provider stamped in one transaction under the claim lock.</li>
+      </ol></div>
+    <div class="pr"><h4>What a job knows about its executor</h4>
+      <p>Every event a job records carries the agent id that ran it, so the timeline shows <em>Coder (Sonnet 5) · claude · claude-sonnet-5</em> per stage and the cost tab breaks spend down by stage, model and provider. When a job is requeued to another provider after a pause, the failover event names both.</p>
+      <ul><li>Effective priority = base + remediation boost 20 + critical-path boost up to 30 + aging up to 15.</li><li>A fast path keeps a job on the same worker across consecutive deterministic steps, skipping the requeue round trip.</li><li>Rate limits are translated by each backend into one typed signal; auth and billing errors are not, so a bad key fails loudly instead of pausing.</li></ul></div>
+  </div>
+</div></section>
+
+<section id="roles" class="reveal alt"><div class="wrap">
+  <div class="sec-head">
+    <div><div class="eyebrow">Tool policies by role</div><h2 style="margin-top:10px">What an agent can touch is decided by the SDK, not by the prompt.</h2></div>
+    <p class="lede">Four roles, four tool sets. The coder writes only inside its worktree. Planners and reviewers have their write tools removed at the SDK level, and every gate runs under a snapshot-and-restore guard on top. The explorer that answers questions about a job is sandboxed with no network at all. The exact tool list per role is in the <a href="/how-it-works/reference/#roles">Reference</a>.</p>
+  </div>
+  <p class="take">Reviewers cannot write. The SDK removes the tools and the gate guard reverts anything that slips through.</p>
+</div></section>
+
+
+
+<p class="wrap small" style="margin:-40px auto 0;padding-bottom:40px">Every environment variable, default and effect: <a href="/how-it-works/reference/#settings">Reference → settings explorer</a>.</p>
+<section id="supervisor" class="reveal"><div class="wrap">
+  <div class="sec-head">
+    <div><div class="eyebrow">The supervisor</div><h2 style="margin-top:10px">One elected process. A fixed scan. Every action capped and recorded.</h2></div>
+    <p class="lede">The supervisor is the control plane's only loop, and it is deliberately AI-free: classification, routing, election and caps are Python and SQL. A model is consulted only where a rule explicitly hands it a closed menu, and its answer is validated by a whitelist before anything runs.</p>
+  </div>
+  <p class="take">One elected, AI-free loop every 120 seconds, every action capped and recorded.</p>
+  <button class="details-toggle" type="button" aria-expanded="false">Show the details</button>
+  <div class="versus" data-deep>
+    <div class="pr"><h4>One scan, every 120 seconds, in this order</h4>
+      <ol class="steps" style="margin:10px 0 0;padding:0">
+        <li><b>Reclaim orphaned slots</b> whose job is no longer running or deploying, keyed on job status, never on heartbeat age.</li>
+        <li><b>Check fleet liveness.</b> Every slot busy and no job advanced in 5 minutes means a wedge; alert once per episode.</li>
+        <li><b>Repoint split orphans</b> and minimise automatic dependency edges per project.</li>
+        <li><b>Alert on stale jobs</b> older than 24 hours.</li>
+        <li><b>Repair dependency cycles</b>, but only by cutting one edge from two provable classes; otherwise alert.</li>
+        <li><b>Classify every failed job</b> into one of 17 classes, typed codes first, and apply the matching remediation: requeue, reconcile, file a fix job, or hand to a person.</li>
+        <li><b>Reconcile blocked dependents</b>, sweep stranded deploying jobs, collect orphaned worktrees and branches.</li>
+        <li><b>Housekeeping:</b> prune the audit log at 90 days, remove dead job containers, prune the build cache every 6 hours, remove images of inactive jobs.</li>
+      </ol></div>
+    <div class="pr"><h4>Caps that bound what it can do</h4>
+      <div class="tbl"><table>
+        <tbody>
+          <tr><td>Requeues per failure class</td><td class="num">5</td><td>then dead-letter to a person</td></tr>
+          <tr><td>Automated remediation depth</td><td class="num">2</td><td>a fix of a fix stops there</td></tr>
+          <tr><td>Deploy-fix jobs per project</td><td class="num">3</td><td>same for migration-merge fixes</td></tr>
+          <tr><td>Gate auto-recovery</td><td class="num">3</td><td>re-run against a fresh base first</td></tr>
+          <tr><td>Auto-deploy attempts per unchanged tip</td><td class="num">3</td><td>a new commit resets the count</td></tr>
+          <tr><td>Analyst diagnoses per scan / per job</td><td class="num">8 / 6</td><td>only above 0.70 confidence, only with a healthy provider</td></tr>
+          <tr><td>Cycle edges cut per scan</td><td class="num">25</td><td>graph rebuilt between each</td></tr>
+          <tr><td>Alert cooldowns</td><td class="num">12 h</td><td>per job, per project</td></tr>
+        </tbody>
+      </table></div>
+      <p style="margin-top:12px">Every action lands in the supervisor event ledger with its failure class and detail, and every remediation job it files goes through every gate like any other job.</p></div>
+  </div>
+</div></section>
+
+<section id="liveness" class="reveal alt"><div class="wrap">
+  <div class="sec-head">
+    <div><div class="eyebrow">Liveness, drain, release</div><h2 style="margin-top:10px">A worker proves it is alive by writing a heartbeat, not by existing.</h2></div>
+    <p class="lede">Systemd reporting "active" is not proof: a crash-looping unit is active. The health check and the release script both require a fresh heartbeat row from a process in the new unit's own cgroup before the old fleet is asked to stop.</p>
+  </div>
+  <p class="take">Alive means a fresh heartbeat row, not an active unit.</p>
+  <button class="details-toggle" type="button" aria-expanded="false">Show the details</button>
+  <div class="ledger" data-deep>
+    <div class="pr"><h4>Heartbeat and reclaim</h4><p>Slots heartbeat on claim, on every fast-path hop, and every 30 seconds while a stage runs; their rows drive the fleet view. Two independent recovery layers exist because a hung SDK teardown once kept renewing "busy" for eight hours: orphaned-slot reclaim keyed on job status, and the wedge detector.</p></div>
+    <div class="pr"><h4>Signals and drain</h4><p>The first SIGTERM starts a graceful drain with a 40-minute ceiling so a mid-flight build survives a release; a second SIGTERM stops immediately. SIGUSR1 is the shorter operator drain at 5 minutes. Draining slots stop claiming, finish their stage, and mark themselves draining in the fleet view.</p></div>
+    <div class="pr"><h4>Blue-green self-release</h4><p>The pipeline deploys itself by starting a new generation unit beside the old, waiting for that unit's heartbeat, and only then stopping the old. The web console does the same with port reuse, gated on the health endpoint returning a PID from the new unit. If the new generation never proves itself, it is stopped and the old fleet keeps serving.</p></div>
+  </div>
+  <div class="band" data-deep><h4>Hardware accounting per stage</h4><p>Every deterministic subprocess (lint, tests, deploy, git) runs in a transient systemd scope so the runner can read the cgroup's CPU seconds, peak memory and I/O when it finishes, plus a coarse network delta. AI stages record their wall time. The figures land per job, stage and attempt and show on the job's Hardware tab. Missing cgroup support degrades to nulls, never to a failed job.</p></div>
+</div></section>
+
+<div class="wrap"><div class="nextprev"><a class="prev" href="/how-it-works/pipeline/"><span class="eyebrow">← Previous</span><b>The life of a job</b></a><a class="next" href="/how-it-works/intake/"><span class="eyebrow">Next chapter →</span><b>Getting work in</b></a></div></div>
+<footer><div class="wrap"><span>Hyqs · autonomous SDLC pipeline · figures from the live ledger, 6 September 2026</span><span>Every mechanism on these pages is cited to a source file in the Hyqs repository.</span></div></footer>
+<script src="/how-it-works/assets/site.js"></script>
+<script>
+(function(){
+  // ---- fleet sizing ----
+  const $=id=>document.getElementById(id);
+  const sizing=()=>{
+    const s=+$("sSlots").value,p=+$("sProcs").value,h=+$("sHosts").value,r=+$("sRoster").value;
+    $("oSlots").textContent=s;$("oProcs").textContent=p;$("oHosts").textContent=h;$("oRoster").textContent=r;
+    const slots=s*p*h;$("rSlots").textContent=slots.toLocaleString();
+    $("rSup").textContent=`1 + ${p*h-1}`;
+    const proj=Math.min(slots,r);$("rProj").textContent=proj;
+    $("rBound").textContent=r<slots?"roster":(r>slots?"fleet slots":"both, equal");
+  };
+  ["sSlots","sProcs","sHosts","sRoster"].forEach(id=>$(id).addEventListener("input",sizing));sizing();
+
+  // ---- roster editor ----
+  const TASKS=["plan","build","fix","review","security"];
+  const roster=[
+    {name:"Coder (Sonnet 5)",provider:"claude",model:"claude-sonnet-5",tasks:new Set(TASKS),cap:1,on:true},
+    {name:"Codex Builder",provider:"codex",model:"gpt-5.6-sol",tasks:new Set(TASKS),cap:1,on:true},
+    {name:"Reviewer (Opus 5)",provider:"claude",model:"claude-opus-5",tasks:new Set(["review","security"]),cap:2,on:false},
+  ];
+  const tb=document.querySelector("#rosterTbl tbody"),out=$("rosterOut");
+  const render=()=>{
+    tb.innerHTML="";
+    roster.forEach((a,i)=>{
+      const tr=document.createElement("tr");
+      tr.innerHTML=`<td>${a.name}</td><td><span class="pill ${a.provider==="claude"?"ai":"det"}">${a.provider}</span></td><td class="mono">${a.model}</td>`+
+        TASKS.map(t=>`<td style="text-align:center"><input type="checkbox" data-i="${i}" data-t="${t}" ${a.tasks.has(t)?"checked":""} aria-label="${a.name} ${t}"></td>`).join("")+
+        `<td><input type="number" min="1" max="12" value="${a.cap}" data-i="${i}" data-cap style="width:64px;font:inherit;padding:4px 6px;border:1px solid var(--line2);border-radius:4px;background:var(--ground);color:var(--ink)"></td>`+
+        `<td style="text-align:center"><input type="checkbox" data-i="${i}" data-on ${a.on?"checked":""} aria-label="${a.name} enabled"></td>`;
+      tb.appendChild(tr);
+    });
+    const per=TASKS.map(t=>{const rows=roster.filter(a=>a.on&&a.tasks.has(t));return {t,cap:rows.reduce((s,a)=>s+a.cap,0),prov:[...new Set(rows.map(a=>a.provider))]};});
+    const total=roster.filter(a=>a.on).reduce((s,a)=>s+a.cap,0);
+    out.innerHTML=`<div><b>${total}</b><small>parallel jobs for this project (Σ enabled max concurrency)</small></div>`+
+      per.map(p=>`<div><b>${p.cap}</b><small>${p.t}: ${p.cap?p.prov.join(" + "):"<span class='rt'>no agent, jobs at this step wait</span>"}</small></div>`).join("");
+  };
+  tb.addEventListener("change",e=>{const el=e.target,i=+el.dataset.i;if(el.dataset.t){el.checked?roster[i].tasks.add(el.dataset.t):roster[i].tasks.delete(el.dataset.t);}else if(el.hasAttribute("data-cap")){roster[i].cap=Math.max(1,+el.value||1);}else if(el.hasAttribute("data-on")){roster[i].on=el.checked;}render();});
+  render();
+
+  // ---- settings explorer ----
+  const S=[
+    ["HYQS_PIPELINE_CONCURRENCY","1","Jobs one process runs in parallel; live fleet uses 8","capacity"],
+    ["HYQS_PIPELINE_LEASE_TTL","90 s","Lease a worker renews while a stage runs; expired means the worker died and the job is reclaimed","capacity"],
+    ["HYQS_PIPELINE_STAGE_TIMEOUT","1800 s","Hard wall-clock cap on one AI stage","capacity"],
+    ["HYQS_PIPELINE_MERGE_LOCK_TTL","300 s","Safety net for a crashed holder of a repository's merge lock","capacity"],
+    ["HYQS_PIPELINE_SCHEMA_LOCK_TTL","300 s","Safety net for the per-project schema lock held merge→deploy","capacity"],
+    ["HYQS_PIPELINE_DRAIN_TIMEOUT","300 s","Operator drain (SIGUSR1): finish in-flight stages, then stop","capacity"],
+    ["HYQS_PIPELINE_DEPLOY_DRAIN_TIMEOUT","2400 s","Release drain (first SIGTERM) so a mid-flight build survives a self-deploy","capacity"],
+    ["HYQS_PIPELINE_DISABLED","off","Run the pipeline only as standalone workers, not inside the chat daemon","capacity"],
+    ["HYQS_PIPELINE_MAX_ATTEMPTS","5","Fix→retest→re-review rounds before a job is handed to a person; overridable per project","budgets"],
+    ["HYQS_PIPELINE_MAX_TIMEOUTS","2","Stage-timeout retries before failing instead of reclaiming forever","budgets"],
+    ["HYQS_PIPELINE_LIMIT_BACKOFF","600 s","Pause when a provider is rate-limited without a reset time; max pause 6 h","budgets"],
+    ["(code) rebase attempts","5","Merge-conflict fixes, backoff 30 s doubling to 10 min, separate from fix rounds","budgets"],
+    ["(code) DB transient retries","3","Deadlocks and serialization failures, no budget spent","budgets"],
+    ["(code) in-lock base advances","3","Clean base advances absorbed under the merge lock before re-verification","budgets"],
+    ["(code) phantom-conflict recoveries","3","Force-refresh and re-poll when GitHub says not mergeable but the local merge is clean","budgets"],
+    ["HYQS_MODEL","sonnet","Default Claude model for chat and, unless overridden, the pipeline","providers"],
+    ["HYQS_PIPELINE_MODEL","(empty)","Pipeline default model when no agent row pins one","providers"],
+    ["HYQS_PERMISSION_MODE","acceptEdits","How unattended the chat agent runs; the pipeline sets its own per role","providers"],
+    ["HYQS_CODEX_BIN","codex","Path to the Codex CLI","providers"],
+    ["HYQS_CODEX_MODEL","(empty)","Codex model; empty delegates to the authenticated CLI","providers"],
+    ["HYQS_CODEX_ARGS","exec --full-auto","Codex CLI arguments","providers"],
+    ["ANTHROPIC_API_KEY","(unset)","API key; unset means the logged-in Claude subscription is used","providers"],
+    ["HYQS_DEPLOY_CMD","(empty)","Shell deploy command; a repo's deploy/release.sh takes precedence","deploy"],
+    ["HYQS_GIT_PUSH","off","Push after a local merge for repositories without a GitHub remote","deploy"],
+    ["HYQS_HOST_NAME","(empty)","This worker's enrolled host; required for --deployer, pins deploy steps","deploy"],
+    ["HYQS_PROJECTS_DIR","~/projects","Where provisioned project repositories live","deploy"],
+    ["HYQS_DATA_DIR","~/.hyqs/data","Worktrees, caches, deployer state; refused if inside a git repository","deploy"],
+    ["HYQS_CREDENTIAL_ENCRYPTION_KEY","(required for Slack)","Fernet key for stored bot tokens; no key, no encryption, no silent plaintext","deploy"],
+    ["HYQS_AUTO_DEPLOY","off","Supervisor poller that files a deploy-only job when origin moves ahead of the deployed commit; live fleet on","supervisor"],
+    ["HYQS_AUTO_DEPLOY_INTERVAL","120 s","Poller cadence","supervisor"],
+    ["HYQS_AUTO_DEPLOY_MAX_ATTEMPTS","3","Deploy jobs filed per unchanged origin tip","supervisor"],
+    ["HYQS_PIPELINE_JOB_STALE_HOURS","24","Age at which an active job triggers an alert","supervisor"],
+    ["HYQS_PIPELINE_INCIDENT_ANALYST_MODEL","sonnet","Model the incident analyst diagnoses with","supervisor"],
+    ["HYQS_PIPELINE_INCIDENT_ANALYST_PROVIDER","auto","Prefer Claude, fall back to any healthy provider, or pin one","supervisor"],
+    ["HYQS_PIPELINE_INCIDENT_ANALYST_SCAN_BUDGET","8","Analyst diagnoses per janitor scan","supervisor"],
+    ["HYQS_PIPELINE_INCIDENT_ANALYST_JOB_CAP","6","Times any single job may ever be diagnosed","supervisor"],
+    ["HYQS_PIPELINE_INCIDENT_ANALYST_PREDEADLETTER_DISABLED","off","Skip the one analyst look before a rule dead-letters a job","supervisor"],
+    ["HYQS_LOG_FORMAT","json","One JSON line per record with job_id, stage, project_id bound; console for local dev","web"],
+    ["HYQS_WEB_HOST / HYQS_WEB_PORT","0.0.0.0 / 8787","Console and API bind address","web"],
+    ["HYQS_WEB_TOKEN","(empty)","Static bearer for the API, resolves to platform admin","web"],
+    ["HYQS_WEB_BASE_URL","(empty)","Public console URL used in Slack deep links","web"],
+    ["HYQS_MCP_RESOURCE_URL","(empty)","Public /mcp URL for OAuth discovery; needs the Google redirect registered","web"],
+    ["HYQS_GOOGLE_CLIENT_ID / _SECRET","(empty)","Google single sign-on, shared by the console and MCP OAuth","web"],
+    ["HYQS_APPLE_*","(empty)","Sign in with Apple: client id, team id, key id, private key","web"],
+    ["HYQS_DB_URL (or DATABASE_URL)","(required)","The shared database; every worker, the console and the supervisor use it","web"],
+    ["HYQS_REGISTRY_DATA_DIR / _HTPASSWD / _PORT","(required) / (required) / 5100","Zot registry storage, bcrypt credentials, loopback port behind nginx","registry"],
+    ["HYQS_REGISTRY_PUSH_ENABLED, _DOMAIN, _PUSH_USER, _PUSH_PASS","(build host only)","Push credentials; must never be set on a deploy or client host","registry"],
+    ["HYQS_COSIGN_KEY_PATH / _PASSWORD","(build host only)","Signing key for release images","registry"],
+    ["HYQS_REGISTRY_PULL_ENABLED, _PULL_USER, _PULL_PASS","(deploy host only)","Pull-only credentials","registry"],
+    ["HYQS_COSIGN_PUBLIC_KEY_PATH","(deploy host only)","Verification key; verify fails closed if unset","registry"],
+  ];
+  const stb=document.querySelector("#setTbl tbody"),q=$("setSearch"),cnt=$("setCount");let grp="all";if(!stb){return;}
+  const draw=()=>{const s=q.value.trim().toLowerCase();stb.innerHTML="";let n=0;S.forEach(r=>{if(grp!=="all"&&r[3]!==grp)return;if(s&&!(r[0]+" "+r[1]+" "+r[2]).toLowerCase().includes(s))return;n++;const tr=document.createElement("tr");tr.innerHTML=`<td><span class="mono">${r[0]}</span></td><td class="num">${r[1]}</td><td>${r[2]}</td><td><span class="pill det">${r[3]}</span></td>`;stb.appendChild(tr);});cnt.textContent=`${n} of ${S.length} settings shown`;};
+  q.addEventListener("input",draw);
+  document.querySelectorAll(".search .chipbtn").forEach(b=>b.addEventListener("click",()=>{document.querySelectorAll(".search .chipbtn").forEach(x=>x.setAttribute("aria-pressed","false"));b.setAttribute("aria-pressed","true");grp=b.dataset.g;draw();}));
+  draw();
+})();
+
+</script>
+</body>
+</html>

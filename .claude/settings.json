@@ -1,0 +1,14 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".venv/bin/python scripts/dev_usage_collector.py"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="A fourteen-slide summary of Hyqs: what it ships, how AI proposes while deterministic code decides, the five gates, the evidence it leaves, what a change costs, and the limits.">
+<meta name="robots" content="noindex">
+<meta name="color-scheme" content="light dark">
+<title>The Hyqs deck</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,300..800&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="/how-it-works/assets/deck.css">
+<script>try{var t=localStorage.getItem("hyqs-site-theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t);}catch(e){}</script>
+</head>
+<body>
+<div class="progress" role="progressbar" aria-label="Deck progress"></div>
+<button class="zone prev" type="button" aria-label="Previous slide"></button>
+<button class="zone next" type="button" aria-label="Next slide"></button>
+<main class="stage">
+<section class="slide cover" id="s1">
+  <div class="s-in">
+    <div class="logo">
+      <svg viewBox="0 0 64 64" width="52" height="52" role="img" aria-label="Hyqs logo"><rect x="14" y="14" width="36" height="36" rx="8" transform="rotate(45 32 32)" fill="none" stroke="var(--accent)" stroke-width="4"/><path d="M21 32h22" stroke="var(--accent)" stroke-width="4" stroke-linecap="round"/><circle cx="32" cy="32" r="4" fill="var(--ink)"/></svg>
+      <span>Hyqs</span>
+    </div>
+    <h2 class="s-h">Software that ships itself,<br>and can prove it.</h2>
+    <p class="s-b">Hyqs turns a written change request into deployed, reviewed, audited software. AI proposes at three points. Deterministic code decides at every gate and performs every irreversible action.</p>
+    <p class="s-foot">Every figure in this deck is read from the pipeline's own database on 6 September 2026.</p>
+  </div>
+</section>
+
+<section class="slide" id="s2">
+  <div class="s-in">
+    <p class="eyebrow">Where it stands today</p>
+    <h2 class="s-h">Not a prototype. A production line.</h2>
+    <p class="s-b">Six products, a team of four, sixty-eight days. These come from the pipeline's own ledger, not from a benchmark.</p>
+    <div class="s-stats">
+      <div><b>2,673</b><span>changes shipped</span></div>
+      <div><b>2,294</b><span>times a gate stopped one before merge</span></div>
+      <div><b>881</b><span>failed a gate, repaired themselves, shipped</span></div>
+      <div><b>$3.69</b><span>all-in model cost per shipped change</span></div>
+    </div>
+    <p class="s-foot">61% landed at night or on a weekend. 744 of them were Hyqs improving itself.</p>
+  </div>
+</section>
+
+<section class="slide" id="s3">
+  <div class="s-in">
+    <p class="eyebrow">Request to production</p>
+    <h2 class="s-h">Eleven steps, and none of them is “hope”.</h2>
+    <p class="s-b">A request becomes a job with a validated plan and its own worktree. It builds, then faces five gates. Failure sends it to a repair loop with a fixed budget, never an open-ended retry.</p>
+    <div class="flow" role="img" aria-label="Request, then Plan, then five gates (lint, tests, code review, security, design), then Merge, Deploy and Live. A gate refusal returns the job to a budgeted repair loop.">
+      <span class="step">Request</span>
+      <span class="arr" aria-hidden="true"></span>
+      <span class="step">Plan</span>
+      <span class="arr" aria-hidden="true"></span>
+      <span class="step wide accent">Five gates<em>lint · tests · code review · security · design</em></span>
+      <span class="arr" aria-hidden="true"></span>
+      <span class="step">Merge</span>
+      <span class="arr" aria-hidden="true"></span>
+      <span class="step">Deploy</span>
+      <span class="arr" aria-hidden="true"></span>
+      <span class="step pass">Live</span>
+    </div>
+    <p class="flow-note">A gate says no, and the job goes back to repair — five rounds, then a person. Nothing reaches Merge that a gate refused.</p>
+  </div>
+</section>
+
+<section class="slide" id="s4">
+  <div class="s-in">
+    <p class="eyebrow">The control boundary</p>
+    <h2 class="s-h">AI proposes. Code decides.</h2>
+    <p class="s-b">AI runs three steps — plan, build, repair. It never decides. Every gate verdict, every merge and every deploy is ordinary deterministic code, so no model can approve its own work or reach production on its own.</p>
+    <div class="lanes">
+      <div class="lane ai">
+        <span class="lane-tag">AI proposes</span>
+        <span class="step">Plan</span><span class="step">Build</span><span class="step">Repair</span>
+      </div>
+      <div class="between">
+        <span class="cross ok">output submitted for judgement</span>
+        <span class="cross no">no path to production</span>
+      </div>
+      <div class="lane det">
+        <span class="lane-tag">Code decides</span>
+        <span class="step">Run tools</span><span class="step">Verdict</span><span class="step">Budget check</span><span class="step">Merge</span><span class="step">Deploy</span>
+      </div>
+    </div>
+    <p class="flow-note">The boundary is enforced by tool policy and the runner, not by asking a model to behave.</p>
+  </div>
+</section>
+
+<section class="slide" id="s5">
+  <div class="s-in">
+    <p class="eyebrow">Five gates, fail closed</p>
+    <h2 class="s-h">A change that cannot prove itself does not land.</h2>
+    <p class="s-b">Lint, tests, code review, security and design each return their own verdict. A tool that fails to run counts as a failure, never as a pass. 2,294 changes were stopped before merge; 395 of those by the security gate.</p>
+    <figure class="s-shot">
+      <img src="/how-it-works/screens/job-stages-security-catch-detail.jpg" alt="The security gate rejecting a job, listing eight scanner findings with file and line">
+      <figcaption>A real refusal: eight findings on string-built SQL, each with file and line. The job repaired itself and landed with parameterised queries.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<section class="slide" id="s6">
+  <div class="s-in">
+    <p class="eyebrow">Recovery, with limits</p>
+    <h2 class="s-h">It repairs itself, and it knows when to stop.</h2>
+    <p class="s-b">881 shipped changes failed a gate first and repaired themselves with nobody watching. Every retry has a named ceiling, so a struggling job burns a budget instead of a weekend.</p>
+    <div class="s-budgets">
+      <div><b>5</b><span>repair rounds</span></div>
+      <div><b>5</b><span>rebase attempts</span></div>
+      <div><b>2</b><span>stage timeouts</span></div>
+      <div><b>1</b><span>plan re-ask</span></div>
+    </div>
+    <p class="s-foot">When a budget runs out the job stops and hands a person its diagnosis, its diff and every command that ran.</p>
+  </div>
+</section>
+
+<section class="slide" id="s7">
+  <div class="s-in">
+    <p class="eyebrow">Audit trail</p>
+    <h2 class="s-h">The record is written by the database.</h2>
+    <p class="s-b">Not by the application. A trigger on thirteen tables records every change, with the acting identity bound per transaction. An application bug or a compromised worker cannot produce an unattributed write.</p>
+    <figure class="s-shot">
+      <img src="/how-it-works/screens/audit-detail.jpg" alt="The audit log filtered by table and actor, grouped by day, with a per-row diff of changed fields">
+      <figcaption>Who changed what, when, from which connection — queryable, and exportable to your SIEM or WORM store.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<section class="slide" id="s8">
+  <div class="s-in">
+    <p class="eyebrow">Segregation of duties</p>
+    <h2 class="s-h">Writing, judging, landing and shipping are four different jobs.</h2>
+    <p class="s-b">Enforced by per-role tool allow-lists, the runner and the role table — not by prompt wording.</p>
+    <div class="s-cols">
+      <div><h4>Writes</h4><p>The coder edits only inside its own worktree. It never commits, merges or deploys.</p></div>
+      <div><h4>Judges</h4><p>Reviewer roles are denied write tools entirely and are snapshot-guarded against tampering.</p></div>
+      <div><h4>Lands</h4><p>The merge step is deterministic code, and re-validates the tree that will actually land.</p></div>
+      <div><h4>Ships</h4><p>A deploy-only worker claims nothing else and refuses to start with an AI credential in scope.</p></div>
+    </div>
+    <p class="s-foot">A human sign-off can be inserted at merge or promotion through the role matrix, without changing the pipeline.</p>
+  </div>
+</section>
+
+<section class="slide" id="s9">
+  <div class="s-in">
+    <p class="eyebrow">The change record</p>
+    <h2 class="s-h">Complete at the moment of deployment.</h2>
+    <p class="s-b">Nothing has to be reconstructed afterwards. Every job carries a validated plan with stories, target files and acceptance criteria; gate results as structured events with the commands that produced them; a decision record written into the repository at merge; and a register row naming the commit and image digest at deploy.</p>
+    <figure class="s-shot">
+      <img src="/how-it-works/screens/job-stages-detail.jpg" alt="A job's stage timeline showing each stage with its agent, provider, model, duration, tokens and cost">
+      <figcaption>One row per stage, with the agent, provider and model that ran it, its duration, tokens and cost.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<section class="slide" id="s10">
+  <div class="s-in">
+    <p class="eyebrow">Supply chain</p>
+    <h2 class="s-h">The reviewed commit and the running container are the same artefact.</h2>
+    <p class="s-b">Lockfile drift blocks at lint. Dependency audits and secret scanning block at security. Release images are signed and addressed by digest; deploy hosts pull by digest, never by tag, and verify with a public key only. The register says so, and can be checked.</p>
+    <div class="s-chain">
+      <span>Reviewed commit</span><i>→</i><span>Merge re-validates the landed tree</span><i>→</i><span>Signed image, addressed by digest</span><i>→</i><span>Host pulls and verifies by digest</span>
+    </div>
+    <p class="s-foot">A repository declares the secrets a release needs; the host checks them locally before cutover, and the values never reach the control plane.</p>
+  </div>
+</section>
+
+<section class="slide" id="s11">
+  <div class="s-in">
+    <p class="eyebrow">What a change costs</p>
+    <h2 class="s-h">$3.69, and thirty-five minutes.</h2>
+    <p class="s-b">All-in model cost per shipped change, with a median of $2.41 and a median thirty-five minutes from request to live. The pipeline meters its own spend per stage, per model and per provider.</p>
+    <figure class="s-shot">
+      <img src="/how-it-works/screens/job-cost-detail.jpg" alt="A job's cost tab, broken down by stage, model and provider with input and output tokens">
+      <figcaption>Stage by model by provider. The same figures feed project analytics and the fleet-wide usage page.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<section class="slide" id="s12">
+  <div class="s-in">
+    <p class="eyebrow">Topology</p>
+    <h2 class="s-h">Your database. Your hosts. No broker.</h2>
+    <p class="s-b">Workers coordinate through a plain relational database holding ninety-second leases, so a dead host's work is reclaimed by the next claim anywhere in the fleet. Console, registry and evidence stay inside your perimeter.</p>
+    <div class="topo">
+      <div class="perim">
+        <span class="lane-tag pass-tag">Your perimeter</span>
+        <div class="topo-row">
+          <span class="col"><span class="step">Worker host A</span><span class="step">Worker host B</span></span>
+          <span class="arr" aria-hidden="true"></span>
+          <span class="step wide accent">Database<em>leases · locks · evidence</em></span>
+          <span class="arr" aria-hidden="true"></span>
+          <span class="col"><span class="step">Console</span><span class="step">Registry</span></span>
+        </div>
+      </div>
+      <div class="ext">
+        <span class="arr dash" aria-hidden="true"></span>
+        <span class="step ochre">Model provider<em>source context only</em></span>
+      </div>
+    </div>
+    <p class="flow-note">The single external dependency is the model provider — the one flow to place under your enterprise agreement.</p>
+  </div>
+</section>
+
+<section class="slide" id="s13">
+  <div class="s-in">
+    <p class="eyebrow">Stated before you find them</p>
+    <h2 class="s-h">Three things this does not do.</h2>
+    <p class="s-b">A pipeline that reports its own weaknesses is easier to govern than one that reports only wins.</p>
+    <div class="s-cols limits">
+      <div><h4>AI gates are probabilistic</h4><p>A model reviewer can miss a defect. No AI verdict stands alone: deterministic scanners and tests sit beside every AI gate.</p></div>
+      <div><h4>The cost meter has gaps</h4><p>Two internal ledgers disagree by about six percent, and 405 jobs have no usage row. The economics report discloses both.</p></div>
+      <div><h4>No automatic rollback</h4><p>By design. A failed cutover never replaces the running release, so there is nothing to roll back; later faults are fixed forward through the gates.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="slide close" id="s14">
+  <div class="s-in">
+    <p class="eyebrow">The whole story</p>
+    <h2 class="s-h">Nine chapters, every mechanism, all the numbers.</h2>
+    <p class="s-b">Each stage, gate, budget, permission and price, with the interactive pipeline diagram and the real console screens.</p>
+    <div class="s-cta">
+      <a class="btn primary" href="/how-it-works/">Read how it works →</a>
+      <a class="btn" href="/how-it-works/regulated/">The control map for regulated industries</a>
+    </div>
+    
+  </div>
+</section>
+
+</main>
+<div class="deck-bar">
+  <a class="home" href="/how-it-works/"><i></i>Hyqs</a>
+  <div class="dots" role="group" aria-label="Go to slide"></div>
+  <div class="ctl">
+    <button id="play" type="button" aria-label="Play the deck on its own">Play</button>
+    <button id="prev" type="button" aria-label="Previous slide">&#8592;</button>
+    <span class="count" aria-live="polite">1 / 14</span>
+    <button id="next" type="button" aria-label="Next slide">&#8594;</button>
+    <button id="theme" type="button" aria-label="Switch theme">&#9790;</button>
+  </div>
+</div>
+<script src="/how-it-works/assets/deck.js"></script>
+</body>
+</html>

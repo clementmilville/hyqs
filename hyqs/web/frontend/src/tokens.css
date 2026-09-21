@@ -1,0 +1,157 @@
+:root {
+  --bg: #0f1115;
+  --panel: #171a21;
+  --line: #262b36;
+  --txt: #e6e9ef;
+  --dim: #8b93a3;
+  --accent: #5b8cff;
+  --ok: #38c172;
+  --bad: #e3342f;
+  --run: #f6993f;
+  --on-accent: #fff;
+
+  /* Spacing scale */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-2h: 10px;
+  --space-3: 12px;
+  --space-3h: 14px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 32px;
+  --space-9: 40px;
+  --space-10: 48px;
+  --space-8: 64px;
+
+  /* Radius scale */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-full: 999px;
+
+  /* Type scale */
+  --text-xs: 11px;
+  --text-sm: 13px;
+  --text-base: 15px;
+  --text-lg: 18px;
+  --text-xl: 20px;
+  --text-2xl: 26px;
+  --text-3xl: 32px;
+
+  /* Elevation scale (composed shadows; --shadow-dialog stays a raw rgba scrim color) */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.35);
+  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.45);
+
+  /* Focus ring */
+  --focus-ring: 2px solid var(--accent);
+
+  /* Motion */
+  --dur-fast: 120ms;
+  --dur-base: 200ms;
+  --ease: ease;
+
+  /* Z-index scale — every literal z-index in styles.css must resolve to one of
+     these tokens (§10.1). */
+  --z-dropdown: 100;
+  --z-nav: 200;
+  --z-nav-scrim: 199;
+  --z-nav-toggle: 201;
+  --z-drawer: 300;
+  --z-modal: 400;
+  --z-popover: 500;
+  --z-toast: 9999;
+
+  /* Breakpoint reference values — documentation only. This repo has no PostCSS custom-media
+     plugin, so @media rules must keep literal px; these exist so new code can point at a
+     canonical number instead of inventing another one. */
+  --bp-sm: 600px;
+  --bp-md: 900px;
+
+  /* Minimum touch target size */
+  --tap-min: 44px;
+
+  /* Sidebar widths */
+  --sidebar-w-collapsed: 52px;
+  --sidebar-w-expanded: 220px;
+  --bottom-tab-h: 60px;
+
+  /* Semantic color tokens (thin aliases — --dim/--line/--panel/--txt/--accent/--bad/--ok/--run
+     remain canonical; do not redefine these, only alias them) */
+  --color-bg: var(--bg);
+  --color-surface: var(--panel);
+  --color-border: var(--line);
+  --color-text: var(--txt);
+  --color-muted: var(--dim);
+  --color-accent: var(--accent);
+  --color-ok: var(--ok);
+  --color-danger: var(--bad);
+  --color-warning: var(--run);
+
+  /* Extended semantic tokens */
+  --color-inset: #0c0e12;
+  --color-code-bg: #0a0c10;
+  --hover-overlay: rgba(255, 255, 255, 0.04);
+  --color-indent-bg: rgba(0, 0, 0, 0.18);
+  --scrim: rgba(0, 0, 0, 0.5);
+  --shadow-dialog: rgba(0, 0, 0, 0.4);
+  --color-msg-you: #2b3a63;
+  --color-log-failed: #f87171;
+  --source-ui: #60a5fa;
+  --source-supervisor: #fb923c;
+  --source-cli: #9ca3af;
+  --source-intake: #4ade80;
+  --source-mcp: #c084fc;
+  --source-unknown: #6b7280;
+
+  /* OAuth brand buttons — Google/Apple sign-in colors are fixed by each
+     provider's brand guidelines, not the app theme, so they stay constant
+     across [data-theme]. Still tokenized per §10.1 (no raw hex in styles.css). */
+  --oauth-google-bg: #f8f9fa;
+  --oauth-google-color: #1a202c;
+  --oauth-google-border: var(--line);
+  --oauth-apple-bg: #1c1c1e;
+  --oauth-apple-color: var(--on-accent);
+  --oauth-apple-border: #3a3a3c;
+}
+
+[data-theme="light"] {
+  --bg: #f8f9fa;
+  --panel: #ffffff;
+  --line: #e2e8f0;
+  --txt: #1a202c;
+  --dim: #718096;
+  --accent: #3b82f6;
+  --ok: #22c55e;
+  --bad: #ef4444;
+  --run: #f97316;
+  --on-accent: #fff;
+
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.12);
+  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.16);
+
+  --color-inset: #f0f2f5;
+  --color-code-bg: #f1f3f6;
+  --hover-overlay: rgba(0, 0, 0, 0.04);
+  --color-indent-bg: rgba(0, 0, 0, 0.05);
+  --scrim: rgba(0, 0, 0, 0.4);
+  --shadow-dialog: rgba(0, 0, 0, 0.18);
+  --color-msg-you: #93b0f8;
+  --color-log-failed: #dc2626;
+  --source-ui: #2563eb;
+  --source-supervisor: #ea580c;
+  --source-cli: #6b7280;
+  --source-intake: #16a34a;
+  --source-mcp: #9333ea;
+  --source-unknown: #9ca3af;
+
+  /* Brand colors — unchanged in light mode (see :root comment). */
+  --oauth-google-bg: #f8f9fa;
+  --oauth-google-color: #1a202c;
+  --oauth-google-border: var(--line);
+  --oauth-apple-bg: #1c1c1e;
+  --oauth-apple-color: var(--on-accent);
+  --oauth-apple-border: #3a3a3c;
+}

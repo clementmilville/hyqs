@@ -1,0 +1,84 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["summary", "stories", "reuses", "adds", "file_impact", "ui_impact", "target_files", "activation"],
+  "properties": {
+    "summary": {"type": "string"},
+    "stories": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "title", "task", "acceptance", "target_files"],
+        "properties": {
+          "id": {"type": "string"},
+          "title": {"type": "string"},
+          "task": {"type": "string"},
+          "acceptance": {"type": "string"},
+          "target_files": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {"type": "string"}
+          },
+          "depends_on": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {"type": "string"}
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "reuses": {
+      "type": "array",
+      "items": {"type": "string"}
+    },
+    "adds": {
+      "type": "array",
+      "items": {"type": "string"}
+    },
+    "file_impact": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["path", "role", "justification", "status", "provenance"],
+        "properties": {
+          "path": {"type": "string", "minLength": 1},
+          "role": {"type": "string", "minLength": 1},
+          "justification": {"type": "string", "minLength": 1},
+          "status": {"type": "string", "enum": ["existing", "new"]},
+          "provenance": {"type": "string", "minLength": 1}
+        },
+        "additionalProperties": false
+      }
+    },
+    "ui_impact": {
+      "type": "object",
+      "required": ["touches_backend_surface", "frontend_changes", "no_ui_change_reason"],
+      "properties": {
+        "touches_backend_surface": {"type": "boolean"},
+        "frontend_changes": {"type": "array", "items": {"type": "string"}},
+        "no_ui_change_reason": {"type": "string"}
+      },
+      "additionalProperties": true
+    },
+    "target_files": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {"type": "string"}
+    },
+    "activation": {
+      "type": "object",
+      "required": ["config_change_required", "activation_location", "expected_live_effect"],
+      "properties": {
+        "config_change_required": {"type": "boolean"},
+        "activation_location": {"type": "string"},
+        "expected_live_effect": {"type": "string"}
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}

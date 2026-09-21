@@ -1,0 +1,63 @@
+<section id="records"><div class="wrap">
+  <div class="sec-head">
+    <div><div class="eyebrow">What a job leaves behind</div><h2 style="margin-top:10px">Evidence is written by the component that did the work, at the moment it did it.</h2></div>
+    <p class="lede">None of this is a report generated afterwards. Each record below has one writer, one moment and one named actor, and the table says which are append-only, which are pruned and which are not covered by the audit trigger.</p>
+  </div>
+  <div class="tbl"><table>
+    <thead><tr><th>Record</th><th>Written by</th><th>Contains</th><th>Properties</th></tr></thead>
+    <tbody>
+      <tr><td>Job row</td><td>runner, console, MCP, supervisor</td><td>idea, stage, status, attempts and the three other budgets, agent and provider, owner and lease, source and acting user, typed failure code, origin and disposition, deployed commit</td><td>Mutable; every change audited; soft-archived, never deleted except with its project</td></tr>
+      <tr><td>Stage events</td><td>each stage handler</td><td>stage, status, attempt, summary, structured detail (stories, commit, patch, findings, verdict), tokens, cost, start and end, the agent id</td><td>Append-only in practice; not audit-triggered</td></tr>
+      <tr><td>Stage logs</td><td>every subprocess and agent stream</td><td>one row per line with stage and attempt</td><td>Cascade with the job; no time pruning</td></tr>
+      <tr><td>Usage ledger</td><td>every model call</td><td>provider, model, four token classes, cost, source stage; developer sessions land here too with no job</td><td>Insert-only from the pipeline; not audit-triggered</td></tr>
+      <tr><td>Hardware</td><td>runner</td><td>CPU, peak memory, I/O, network, wall time per stage and attempt</td><td>Cascade with the job</td></tr>
+      <tr><td>Supervisor events</td><td>the elected supervisor</td><td>action, failure class, detail for every classification, requeue, filed job, dead-letter, escalation</td><td>Append-only</td></tr>
+      <tr><td>Deploy register</td><td>deploy stage</td><td>project, environment, commit, previous commit, trigger, verified, image reference, digest, signed</td><td>Append-only, audit-triggered, the source of truth for what is live</td></tr>
+      <tr><td>Decision record</td><td>merge stage</td><td>one markdown file per merged job in the repository: title, date, summary, files touched</td><td>Git history; newest 200 kept per repository</td></tr>
+      <tr><td>Audit log</td><td>a database trigger</td><td>see below</td><td>Pruned at 90 days by default</td></tr>
+    </tbody>
+  </table></div>
+</div></section>
+
+<section id="audit"><div class="wrap">
+  <div class="sec-head">
+    <div><div class="eyebrow">The audit trigger</div><h2 style="margin-top:10px">The application cannot write an unattributed row, and it cannot forge who it was.</h2></div>
+    <p class="lede">Thirteen tables carry a before-insert-update-delete trigger that stamps the acting identity, records a per-column old-to-new diff, and adds three columns the database observes about the connection itself. A direct SQL edit from outside the application is attributed to the database session user. Heartbeat churn is filtered so the log stays readable.</p>
+  </div>
+  <figure class="topo"><svg viewBox="0 0 1200 250" role="img" aria-label="Audit flow: a request sets a transaction-local actor; a table trigger fires on any write; the trigger stamps created_by and updated_by, diffs old and new, and appends an audit row with actor, connection PID, client address and backend start.">
+    <defs><marker id="aa" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="currentColor"/></marker></defs>
+    <g class="tb hi"><rect x="20" y="70" width="270" height="80" rx="5"/><text x="155" y="100" text-anchor="middle">Request or worker</text><text class="s" x="155" y="118" text-anchor="middle">user:email · apitoken:id · mcp:email</text><text class="s" x="155" y="132" text-anchor="middle">worker:id job:n · supervisor:host:pid</text></g>
+    <g class="tb"><rect x="330" y="70" width="240" height="80" rx="5"/><text x="450" y="100" text-anchor="middle">Transaction</text><text class="s" x="450" y="118" text-anchor="middle">set_config('hyqs.actor', …, local)</text><text class="s" x="450" y="132" text-anchor="middle">one short transaction per call</text></g>
+    <g class="tb"><rect x="610" y="70" width="240" height="80" rx="5"/><text x="730" y="100" text-anchor="middle">Table trigger</text><text class="s" x="730" y="118" text-anchor="middle">BEFORE INSERT / UPDATE / DELETE</text><text class="s" x="730" y="132" text-anchor="middle">13 tables: jobs, projects, users…</text></g>
+    <g class="tb hi"><rect x="890" y="40" width="290" height="140" rx="5"/><text x="1035" y="68" text-anchor="middle">audit_log row</text><text class="s" x="1035" y="88" text-anchor="middle">at · actor · table · row · action</text><text class="s" x="1035" y="104" text-anchor="middle">changed: {column: [old, new]}</text><text class="s" x="1035" y="124" text-anchor="middle">backend_pid · client_addr · backend_start</text><text class="s" x="1035" y="140" text-anchor="middle">(observed by the database, not self-reported)</text><text class="s" x="1035" y="162" text-anchor="middle">+ created_by / updated_by on the row</text></g>
+    <g stroke="currentColor" fill="none" stroke-width="1.4" marker-end="url(#aa)"><path d="M290 110 L330 110"/><path d="M570 110 L610 110"/><path d="M850 110 L890 110"/></g>
+    <text class="s" x="600" y="205" text-anchor="middle" font-family="IBM Plex Mono" font-size="12" fill="var(--muted)">no actor set → 'db:' || session_user, so direct SQL edits are attributed too</text>
+    <text class="s" x="600" y="225" text-anchor="middle" font-family="IBM Plex Mono" font-size="12" fill="var(--muted)">updates that change only updated_at / updated_by / lease_until write no row</text>
+  </svg><figcaption>The audit row is produced inside the database on every write to a governed table. The actor string is what the application claims; the PID, client address and backend start are what the database saw.</figcaption></figure>
+  <div class="ledger" style="margin-top:22px">
+    <div class="pr"><h4>Exposure</h4><p>Admin → Access → Audit, gated on the view-audit permission, filterable by table, actor and row, day-grouped, with same-minute bursts collapsed. The API returns the forensic columns; the screen does not yet render them.</p></div>
+    <div class="pr"><h4>Retention</h4><p>The supervisor prunes audit rows older than 90 days on every scan. That is the in-database default; a bank should stream the table to its SIEM or WORM store, and there is no export endpoint yet, so that feed is a database job today.</p></div>
+    <div class="pr"><h4>Not covered</h4><p>The usage, stage-event, log, hardware and supervisor ledgers carry no trigger and no created-by column. They are append-only by construction, but a direct database edit to them would leave no trace. Stated here so it is not discovered later.</p></div>
+  </div>
+</div></section>
+
+<section id="identity"><div class="wrap">
+  <div class="sec-head">
+    <div><div class="eyebrow">Identity and roles</div><h2 style="margin-top:10px">Invite-only sign-in, eight roles, twenty-four permissions, editable at runtime.</h2></div>
+    <p class="lede">Google or Apple single sign-on, refused without a pending invitation. API tokens are stored as a hash, scoped to one project, and can never satisfy a platform-wide check. Permissions live in a table, edited from the console, with a locked core so a platform admin can never remove the five that would lock everyone out. Hover a role to read it.</p>
+  </div>
+  <p class="small">The full eight-by-twenty-six matrix, hover a role to read it: <a href="/how-it-works/reference/#matrix">Reference</a>.</p>
+  <div class="principles" style="margin-top:22px">
+    <div class="pr"><h4>Three scopes</h4><p>Project scope through membership, environment scope through environment members (a client approver can hold one permission for one environment without being a project member), and platform scope for the admin permissions. One check function serves both the console and MCP.</p></div>
+    <div class="pr"><h4>Segregation by construction</h4><p>Automation clients cannot archive. Promoting to production needs a distinct permission from promoting. Applying an offered release on a client host needs yet another, held by the client. Every promotion row records who requested, who applied, when, and which job executed it.</p></div>
+    <div class="pr"><h4>Every write has a principal</h4><p>Console users, API tokens, MCP clients, workers, the supervisor and the two system services each stamp their own actor prefix, so the audit log can answer "was this a person or the machine" without a lookup.</p></div>
+  </div>
+</div></section>
+
+<section id="auditor"><div class="wrap">
+  <div class="sec-head">
+    <div><div class="eyebrow">What an auditor can ask</div><h2 style="margin-top:10px">Each question, the record that answers it, and where to get it.</h2></div>
+    <p class="lede">Open a question. Every answer names a stored record and the API or screen that returns it, so the response to a request for evidence is a query, not a reconstruction.</p>
+  </div>
+  <div class="qa" id="qa"></div>
+</div></section>

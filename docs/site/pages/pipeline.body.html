@@ -1,0 +1,93 @@
+<section id="flow"><div class="wrap">
+  <div class="sec-head">
+    <div><div class="eyebrow">The flow</div><h2 style="margin-top:10px">Eleven steps, four loops, every exit named.</h2></div>
+    <p class="lede">Click any step to see exactly what it does, what it needs to pass, and where it routes on failure. Toggle the layers to isolate the happy path, the self-healing loops, or the control plane that surrounds them. <span style="color:var(--muted)">Keyboard: <span class="kbd">←</span> <span class="kbd">→</span> move between steps, <span class="kbd">space</span> pauses or resumes a running simulation.</span></p>
+  </div>
+  <div class="flow">
+    <div class="flow-bar">
+      <div class="grp"><span class="lab">Layers</span>
+        <button class="tbtn" data-layer="all" aria-pressed="true">All</button>
+        <button class="tbtn" data-layer="happy" aria-pressed="false">Happy path</button>
+        <button class="tbtn" data-layer="heal" aria-pressed="false">Self-heal loops</button>
+        <button class="tbtn" data-layer="ctrl" aria-pressed="false">Control plane</button>
+      </div>
+      <div class="grp" style="gap:8px;margin-left:8px">
+        <span class="chip"><i class="i-steel"></i>Deterministic</span>
+        <span class="chip"><i class="i-ochre"></i>AI (read-only or write-scoped)</span>
+        <span class="chip"><i class="i-mixed"></i>Deterministic + AI, both must pass</span>
+      </div>
+      <div class="grp sim" role="group" aria-label="Simulation controls"><span class="lab">Simulate</span><button class="tbtn" id="simPrev" aria-label="Previous step" disabled>◀ Prev</button><button class="tbtn run" id="runBtn">▶ Play a sample job</button><button class="tbtn" id="simNext" aria-label="Next step">Next ▶</button><span class="simpos mono" id="simPos" aria-live="off"></span></div>
+    </div>
+    <div class="flow-body">
+      <div>
+        <p class="flow-hint">↔ The diagram is wider than this screen: drag it sideways, or use the step buttons below.</p>
+        <div class="flow-svg" id="flowHost"></div>
+        <div class="flow-foot" id="stepBtns" role="tablist" aria-label="Steps"></div>
+      </div>
+      <aside class="panel" id="panel" aria-live="polite"></aside>
+    </div>
+  </div>
+</div></section>
+<section id="gates"><div class="wrap">
+  <div class="sec-head">
+    <div><div class="eyebrow">The gates</div><h2 style="margin-top:10px">Five gates. Each one is diff-scoped, fail-closed, and tamper-aware.</h2></div>
+    <p class="lede">A job is judged on the files it changed, never on the repository's pre-existing debt. That single rule is what keeps the fix loop convergent: an agent is only ever asked to fix something it can actually reach.</p>
+  </div>
+  <div class="tbl"><table>
+    <thead><tr><th>Gate</th><th>Deterministic layer</th><th>AI layer</th><th>Fails closed when</th><th>On failure</th></tr></thead>
+    <tbody>
+      <tr><td>Lint <span class="pill det">det</span></td><td>Lockfile drift check (<span class="mono">uv lock --check</span>), ruff / prettier / eslint over changed files only, safe auto-fixes committed. 5-minute cap.</td><td>none</td><td>Diagnostics on changed files. Tool or environment faults are skipped with a warning, never blamed on the code.</td><td>Fix step</td></tr>
+      <tr><td>Test <span class="pill det">det</span></td><td>Symbol-collision and migration-head checks, import smoke test, frontend build, detected suite (Make, pytest, npm, cargo, go) with diff-aware selection and full-suite fallbacks, then the project's own invariant scripts. 15-minute cap.</td><td>none</td><td><strong>No test suite detected</strong> refuses to merge. Any unmappable diff runs the full suite.</td><td>Fix step; a timeout spends the timeout budget instead</td></tr>
+      <tr><td>Review <span class="pill ai">ai</span></td><td>Persona checklist chosen by path classification (db, frontend, authz, infra); UI-impact warning; reuse contract against the symbol index.</td><td>Read-only reviewer, schema-bound verdict, closed list of blocking reasons. Weakening an existing test is itself a blocking finding. A diff that edits the project constitution is scrutinised for self-amendment.</td><td>Verdict ≠ pass. Output malformed twice.</td><td>Fix step; alternating review/security verdicts escalate to a human ruling</td></tr>
+      <tr><td>Security <span class="pill mixed">det + ai</span></td><td>bandit, pip-audit, detect-secrets, semgrep, npm audit run concurrently on changed lines only. Scanner configs introduced by the same diff are ignored. npm audit compares baseline vs candidate; indeterminate results block.</td><td>Zero-tolerance security reviewer; low and medium findings block as hard as critical; each finding must name the changed path, the sink, and the fix.</td><td>Either layer fails. Baseline vulnerability debt is filed as its own remediation job instead of blocking unrelated work.</td><td>Fix step</td></tr>
+      <tr><td>Design review <span class="pill mixed">det + ai</span></td><td>Orphan CSS-class scan over added markup (skipped for Tailwind projects). Runs only when the diff touches the UI.</td><td>UX reviewer with three blocking classes: orphan class, hard-coded values where tokens exist, interactive element without loading/empty/error state.</td><td>Either layer fails.</td><td>Fix step</td></tr>
+      <tr><td>Merge validation <span class="pill det">det</span></td><td>After absorbing new commits on the base branch and before the irreversible squash-merge: lint and tests on the merged tree, plus same-hunk overlap detection between the job's diff and the base's new commits.</td><td>Scoped review + security re-run on the merge delta only, when the delta contains code.</td><td>Any check fails on the tree that would actually land.</td><td>Fix step or conflict-fix on the rebase budget</td></tr>
+    </tbody>
+  </table></div>
+  <div class="versus" style="margin-top:22px">
+    <div class="pr"><h4>What the gates caught, 68 days</h4>
+      <div class="catch">
+        <div class="bar"><span>Test</span><div class="tr"><i style="width:100%"></i></div><span class="v">822</span></div>
+        <div class="bar"><span>Review</span><div class="tr"><i style="width:78%"></i></div><span class="v">642</span></div>
+        <div class="bar"><span>Security</span><div class="tr"><i style="width:48%;background:var(--fail)"></i></div><span class="v">395</span></div>
+        <div class="bar"><span>Lint</span><div class="tr"><i style="width:38%"></i></div><span class="v">312</span></div>
+        <div class="bar"><span>Design</span><div class="tr"><i style="width:15%"></i></div><span class="v">123</span></div>
+      </div>
+      <p style="margin-top:12px">2,294 stops before merge. Every one produced a finding, a fix brief and a fix attempt, and none of them reached the base branch. That is the fail-closed record, not a defect rate.</p></div>
+    <div class="pr"><h4>What healed without a person</h4>
+      <div class="catch">
+        <div class="bar"><span>Fix rounds</span><div class="tr"><i class="o" style="width:100%"></i></div><span class="v">2,463</span></div>
+        <div class="bar"><span>Self-healed ships</span><div class="tr"><i class="o" style="width:36%"></i></div><span class="v">881</span></div>
+        <div class="bar"><span>Requeues</span><div class="tr"><i class="o" style="width:29%"></i></div><span class="v">704</span></div>
+        <div class="bar"><span>Conflicts</span><div class="tr"><i class="o" style="width:14%"></i></div><span class="v">342</span></div>
+      </div>
+      <p style="margin-top:12px">One in three shipped changes failed a gate on its first pass and fixed itself inside the budget. 342 merge conflicts were resolved and re-verified without anyone opening an editor.</p></div>
+  </div>
+  <div class="principles" style="margin-top:22px">
+    <div class="pr"><h4>Reviewers cannot touch the code</h4><p>Reviewer roles are denied Write and Edit tools at the SDK level. On top of that, every gate runs inside a snapshot-and-restore guard: if the worktree changed during the gate, the change is discarded and the gate re-runs once, then the job fails.</p></div>
+    <div class="pr"><h4>Prose is not filesystem authority</h4><p>A gate may widen a job's file scope only through structured evidence from a deterministic check, limited to 32 paths, 8 per cycle, 24 in total. Free-text findings from a model never become permission to edit new files.</p></div>
+    <div class="pr"><h4>Lessons become executable</h4><p>Past review and incident conclusions are written as invariant scripts under <code>.hyqs/invariants/</code>. They run after the suite on every job, so a lesson is learned once by a human and enforced forever by code.</p></div>
+  </div>
+</div></section>
+<section id="heal"><div class="wrap">
+  <div class="sec-head">
+    <div><div class="eyebrow">Self-healing, bounded</div><h2 style="margin-top:10px">Every retry has its own budget. None of them can be spent by another.</h2></div>
+    <p class="lede">Merge contention never consumes a bug-fix credit. A stalled provider never consumes a timeout credit. A database deadlock never consumes anything. That separation is why the fleet converges instead of looping, and why the operator can reason about worst-case spend.</p>
+  </div>
+  <div class="ticker">
+    <div class="tk"><b>5</b><span>fix rounds per job</span><small>test, review, security or design findings → fix step. Overridable per project.</small></div>
+    <div class="tk"><b>5</b><span>rebase attempts</span><small>merge-boundary conflicts, backoff 30 s doubling to 10 min, on a separate counter</small></div>
+    <div class="tk"><b>2</b><span>stage timeouts</span><small>30 min wall-clock cap per AI stage, then the job is failed, not silently reclaimed</small></div>
+    <div class="tk"><b>1</b><span>plan re-ask</span><small>a plan over 5 stories or 8 files is split into chained child jobs or parked</small></div>
+    <div class="tk"><b>3</b><span>clean base advances</span><small>absorbed inside the merge lock before re-verification is required</small></div>
+    <div class="tk"><b>3</b><span>transient DB retries</span><small>deadlocks and serialization failures, exponential backoff, no budget spent</small></div>
+    <div class="tk"><b>6 h</b><span>maximum provider pause</span><small>rate limits pause only that provider; the job resumes at the same step</small></div>
+    <div class="tk"><b>5</b><span>supervisor requeues</span><small>per failure class before a job is dead-lettered to a human with its evidence</small></div>
+  </div>
+  <div class="versus" style="margin-top:22px">
+    <div class="pr"><h4>The supervisor is one elected process</h4><p>A database session-level advisory lock elects exactly one supervisor across all hosts; standbys take over within 30 seconds of its death. Every 120 seconds it reclaims orphaned worker slots, checks fleet liveness, repairs dependency cycles from two provable edge classes only, classifies every failed job into one of 17 deterministic classes, and applies the matching remediation.</p>
+      <ul><li><strong>Stale branch</strong> → clean worktree, requeue with attempts reset</li><li><strong>Merged but stuck</strong> → confirm on GitHub, reconcile to done</li><li><strong>Deploy failed</strong> → file a fix-forward job on main; the original waits on it and closes done</li><li><strong>Migration heads diverged</strong> → generate the merge revision deterministically</li><li><strong>Gate finding not attributable</strong> → re-run the gate against a fresh base, suppress or file a scoped gate-fix job</li></ul></div>
+    <div class="pr"><h4>AI advises the supervisor; it never drives it</h4><p>An incident analyst may read a failed job's evidence and recommend one action from a closed menu: requeue at a stage, repair a bounded set of paths, file up to four chained fix jobs, or escalate. The recommendation is validated by a pure whitelist, executed only above 0.70 confidence, capped at 6 diagnoses per job, and skipped entirely when no healthy provider exists. The janitor also gives it one look before any deterministic rule dead-letters a job.</p>
+      <ul><li>The job-chat explorer that lets a human ask questions about a job runs in a bubblewrap sandbox with no network, read-only tools, and a deny-by-default path guard.</li><li>Merge conflicts of the pure two-sided-append shape are resolved without a model at all. Anything else goes to the conflict-fix agent on the rebase budget.</li></ul></div>
+  </div>
+</div></section>

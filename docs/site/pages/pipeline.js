@@ -1,0 +1,327 @@
+
+(function(){
+  // ---------- data ----------
+  const STEPS = {
+    queue:{name:"Queued",kind:"ctrl",kl:"Control plane",sub:"A change request becomes a job with provenance, an epic, dependencies and an idempotency key.",
+      what:["Filed from the console, the CLI, an MCP client such as Claude.ai, a structured intake interview, or the supervisor itself. The acting user is recorded on the job.","A pre-creation survey checks the job's target files against every active job; overlapping batches are auto-chained with a dependency of provenance <em>auto</em>.","Claimed by any worker on any host under one database advisory lock. Claiming first reclaims jobs whose 90-second lease expired on a dead worker."],
+      pass:"Dependencies done or resolved, no file overlap with a running job, an enabled agent with free concurrency for this step, and its provider not paused.",
+      fail:[["Waits, not failures", "Five named scheduler wait reasons are derived live: project slot occupied, file overlap, schema lock, merge lock, provider capacity. Each names the blocking job or the reset time."]],
+      budget:"Effective priority = base + remediation boost 20 + critical-path boost up to 30 + aging up to 15.",
+      evid:"Job row with source, source actor, idempotency key; dependency edges with provenance; audit-log rows for the insert.",
+      src:"store.py claim(), collision.py survey_job_queue(), models.py SchedulerWaitReason"},
+    plan:{name:"Plan",kind:"ai",kl:"AI · read-only planner",sub:"Turns the idea into a validated JSON plan of at most five stories and eight target files.",
+      what:["Runs in a detached, throwaway worktree so the planner's shell can never dirty the shared checkout.","Receives the tracked-file manifest, a ranked candidate list, the project symbol index, the conventions file and the digest of the last 15 decision records.","Output is schema-validated: stories with ids, acceptance criteria and target files; per-file impact with justification; UI impact; activation instructions. Dependencies between stories may only point backwards, so the plan is acyclic by construction."],
+      pass:"Scope-completeness check passes and the plan is within the scope gate (5 stories, 8 files) or touches a migration.",
+      fail:[["Scope incomplete → one re-ask, then <span class='rt'>failed</span>","A plan that omits files the evidence says it must touch gets exactly one correction round."],["Too large → split","Stories that share no files become independent jobs; stories that share files become a depends_on chain. The original is superseded."],["Unsplittable → parked","A bare retry is refused; refile smaller or bypass with an explicit force flag."]],
+      budget:"1 plan re-ask. Stage timeout 30 min, at most 2 timeouts.",
+      evid:"plan event with stories, unknown reuse symbols, shadowed additions, planning metadata; usage row for tokens and cost.",
+      src:"stages/plan.py, contracts.py _validate_plan_semantics, schemas/plan-response.schema.json"},
+    build:{name:"Build",kind:"ai",kl:"AI · write-scoped coder",sub:"Implements the plan in an isolated git worktree. The runner commits, pushes and opens the pull request.",
+      what:["A fresh branch <code>hyqs/job-N</code> is cut from a freshly fetched base into a worktree outside the repository; the data directory is refused at boot if it sits inside a git checkout.","The coder runs with edits auto-accepted but confined to the worktree path, with the file manifest and symbol index so it edits what exists instead of guessing paths.","Isolation guard: the shared checkout's dirty paths are snapshotted before and after. Anything newly dirtied outside the worktree is an isolation violation.","The runner commits, pushes (force-refreshing a stale pipeline branch if needed) and opens a PR whose body carries the idea and the plan summary."],
+      pass:"A commit exists on the branch and the push succeeded.",
+      fail:[["Isolation violation → <span class='rt'>failed</span>, human review","Leaked changes are preserved for recovery; the job never proceeds."],["No diff → verification","An independent reviewer verifies the claim that the feature already exists; confirmed → <span class='rp'>done</span> as already-satisfied, rejected → one rebuild."],["Push failure → <span class='rt'>failed</span>","A PR-less job can never merge, so it fails loudly for the supervisor to classify as transient or not."]],
+      budget:"Stage timeout 30 min, at most 2 timeouts.",
+      evid:"build event with commit hash, per-file numstat, the patch (80 kB cap), PR URL; usage row; wall-clock resource row.",
+      src:"stages/build.py, gitops.py dirty_paths(), providers.py Role.CODER"},
+    lint:{name:"Lint",kind:"det",kl:"Deterministic",sub:"Lockfile sync plus diff-scoped format and lint. No model call.",
+      what:["<code>uv lock --check</code> when a Python manifest and lockfile both exist.","ruff, prettier, eslint as detected from the project's own configuration, run only on files changed versus the base branch.","Safe auto-fixes are committed and pushed; the authoritative check runs afterwards."],
+      pass:"No diagnostics on changed files. Tool or environment faults (missing binary, no config, timeout) are skipped with a warning rather than blamed on the code.",
+      fail:[["Diagnostics → <span style='color:var(--ochre)'>fix</span>","Failure text names the command and the findings; the fixer is told to edit source, not the linter config."],["Lockfile drift → <span style='color:var(--ochre)'>fix</span>","The fixer is instructed to run the lock command and commit the lockfile."]],
+      budget:"Counts against the 5 fix rounds. 5-minute lint cap.",
+      evid:"lint or lockfile-drift event with commands and output; resource row.",
+      src:"stages/lint.py, linting.py, testing.py check_lockfile_sync()"},
+    test:{name:"Test",kind:"det",kl:"Deterministic",sub:"Six checks in order, ending with the project's own invariant scripts. No model call.",
+      what:["Symbol-collision check against the project index and Alembic multiple-head check.","Import smoke test of the application entry module with placeholder secrets, so fail-fast secret checks do not deadlock the gate.","Frontend build for any touched frontend root.","Detected suite: Makefile target, pytest, npm test, cargo test, go test. Diff-aware selection with hard fallbacks to the full suite for shared files, config files, migrations or anything unmappable.","Invariants: executable scripts under <code>.hyqs/invariants/</code>, given the changed files, 60 s each, 300 s total. Exit 1 is a violation, 78 is not-applicable, anything else is skipped so a broken check never fails an unrelated job."],
+      pass:"All checks pass. <strong>No suite detected is a failure</strong>: the pipeline refuses to merge untested code.",
+      fail:[["Any check → <span style='color:var(--ochre)'>fix</span>","The failure carries the command, the summary, and for invariants the script's own output."],["Suite timeout (15 min) → timeout budget","Spends a timeout credit, not a fix credit; requeued at the same step."],["Worktree missing → <span class='rt'>failed</span> as infrastructure","Matched on an anchored prefix the candidate's own output cannot forge."]],
+      budget:"Counts against the 5 fix rounds; timeouts against the 2 timeout retries.",
+      evid:"Events for symbol-collision, alembic-heads, import-smoke, frontend-build, test and invariants with commands and output; resource row with CPU, RSS and I/O.",
+      src:"stages/test.py, testing.py, invariants.py, collision.py"},
+    review:{name:"Review",kind:"ai",kl:"AI · read-only reviewer",sub:"Judges the diff against the plan, the conventions and the reuse contract. Emits pass or fail, nothing else.",
+      what:["Sees only <code>base...HEAD</code> after a fresh fetch, plus the plan, the symbol index, the decision digest, a persona checklist selected deterministically from the changed paths, and the prior attempt's verdict so it converges.","Closed list of blocking reasons: contradicts a story or acceptance criterion, broken execution path, incorrect state or data, wrong integration, missing plan-required regression coverage, <strong>an existing test weakened to conceal behaviour</strong>, needless reimplementation of an indexed symbol, correctness-breaking convention violation. Style is non-blocking.","If the diff edits the project constitution, the reviewer applies self-amendment scrutiny: weakening an existing rule blocks unless the request explicitly asked for it.","Runs under the gate guard: worktree snapshot before and after; a mutation is discarded and the gate re-run once."],
+      pass:"Verdict <code>pass</code> in a schema-valid response.",
+      fail:[["Verdict fail → <span style='color:var(--ochre)'>fix</span>","Findings with severity and note become the fix brief; a review comment is posted on the PR either way."],["Malformed output twice → fails closed","One re-ask on a contract error; the second failure is a <code>fail</code> verdict, not a fix credit."],["Review ↔ security alternation → <span class='rt'>failed</span>, human ruling","Identical alternating fingerprints across four gate failures are detected and escalated instead of looping."]],
+      budget:"Counts against the 5 fix rounds.",
+      evid:"review event with verdict and findings; PR comment; usage row.",
+      src:"stages/review.py, agents.py REVIEW_SYS, gate_guard.py, models.py gate_conflict_detected()"},
+    security:{name:"Security",kind:"mixed",kl:"Deterministic + AI, both must pass",sub:"Five scanners on changed lines and a zero-tolerance AI reviewer. Either layer blocks.",
+      what:["Layer 1, concurrent and diff-line-scoped: bandit, pip-audit, detect-secrets, semgrep (security category only), and a baseline-versus-candidate npm audit run on temp snapshots, never in the worktree.","Anti-tamper: a bandit config introduced or edited by the same diff is ignored; test exemptions are directory-based so a production file cannot dodge scanning by its name.","npm audit blocks on introduced or worsened advisories at high or above, and <strong>blocks on indeterminate results</strong>. Pre-existing baseline debt is filed as a separate remediation job rather than blocking unrelated work.","Layer 2: the AI reviewer is told not to assume the scanners found everything; low and medium findings block as hard as critical; every finding must name changed path, symbol, attacker capability, missing control, sink, impact and minimal fix."],
+      pass:"AI verdict pass <em>and</em> no scanner finding <em>and</em> npm audit not blocked.",
+      fail:[["Either layer → <span style='color:var(--ochre)'>fix</span>","The failure lists the AI findings, the scanner findings with file and line, and the dependency findings separately."],["Baseline debt only → blocked","The job waits on the filed baseline remediation job instead of failing."]],
+      budget:"Counts against the 5 fix rounds. 2-minute cap per scanner.",
+      evid:"security event with merged findings from all layers and the verdict; PR comment; usage row.",
+      src:"stages/security.py, sast.py, npm_audit.py, agents.py SECURITY_SYS"},
+    design:{name:"Design review",kind:"mixed",kl:"Deterministic + AI, UI diffs only",sub:"Runs only when the diff touches the frontend. Orphan-class scan plus a UX reviewer with three blocking classes.",
+      what:["Skipped entirely for backend-only diffs so they are not slowed down.","Every <code>className</code> literal added in JSX, TSX or Vue hunks must resolve to a selector in some stylesheet; skipped for Tailwind projects. Fail-closed on real orphans, fail-open on tooling errors.","AI reviewer blocks on exactly three things: an orphan class, hard-coded pixel, colour or font values where design tokens exist, and a new interactive element without loading, empty and error states. Pre-existing UI debt is out of scope."],
+      pass:"AI verdict pass and no orphan findings.",
+      fail:[["Either layer → <span style='color:var(--ochre)'>fix</span>","Findings carry the file paths the fixer may touch."]],
+      budget:"Counts against the 5 fix rounds.",
+      evid:"design_review event with verdict and findings; usage row.",
+      src:"stages/design_review.py, agents.py DESIGN_REVIEW_SYS"},
+    merge:{name:"Merge",kind:"det",kl:"Deterministic · the irreversible step",sub:"Serialised per repository, validated on the tree that will actually land, then squash-merged with the ADR recorded.",
+      what:["Schema-touching diffs (models, migrations, SQL, startup migration hooks, per-project globs) take a per-project schema lock held from merge through deploy so two migrations never land out of order.","A per-repository merge lock serialises landings; the loser requeues in 5 seconds and frees its worker slot.","Inside the lock, up to 3 clean base advances are absorbed without spending any budget. A pure two-sided-append conflict is resolved deterministically; any other conflict goes to the conflict-fix agent.","If the base moved, post-merge validation re-lints and re-tests the merged tree and checks for same-hunk overlap between the job's diff and the base's new commits, before anything irreversible happens.","GitHub-native squash-merge of the PR with identity checks (base, branch, head commit). A phantom not-mergeable verdict is recovered by force-refreshing the branch up to 3 times. Then the local base is fast-forwarded, the branch deleted, an implementation summary written and an ADR committed to the repository."],
+      pass:"Base current or absorbed cleanly, validation passed, PR merged.",
+      fail:[["Conflict → <span style='color:var(--warn)'>conflict fix</span> → merge-verify","On the separate rebase budget with backoff; the pre-conflict commit is recorded so re-verification scopes to the delta."],["Base advances exhausted → merge-verify","Re-tests and returns to merge."],["Post-merge validation fails → <span style='color:var(--ochre)'>fix</span> or conflict fix","Overlapping hunks route to the conflict fixer with both patches; lint or test failures to the ordinary fixer."],["Rebase budget exhausted → <span class='rt'>failed</span>","Human review with the conflict evidence."]],
+      budget:"5 rebase attempts, backoff 30 s doubling to 10 min. 3 in-lock advances. 3 phantom-conflict recoveries. Merge lock TTL 5 min, schema lock TTL 5 min.",
+      evid:"merge events (auto-resolved, conflict, post-merge validation, PR evidence with state, URL, head commit), decision record file in the repo, activation follow-up job if configured.",
+      src:"stages/merge.py, merge_validate.py, conflict_autoresolve.py, decisions.py, classify.py is_schema_touching()"},
+    mverify:{name:"Merge-verify",kind:"mixed",kl:"Deterministic tests + scoped AI gates on the delta only",sub:"Re-verifies only what the merge boundary introduced, never the whole job again.",
+      what:["Entered after a conflict was resolved, or after the in-lock base-advance budget ran out.","The merge-base is refreshed first so other jobs' landings do not leak into the delta.","Tests run selected for the delta, with the complete-suite fallback for unknown deltas.","Review and security re-run scoped to the delta only when it contains code; documentation-only deltas skip the AI gates."],
+      pass:"Tests pass and, if run, both scoped gates pass.",
+      fail:[["Any check → <span style='color:var(--ochre)'>fix</span>","Ordinary fix credit; the fix returns here for conflict fixes or to lint for the rest."]],
+      budget:"Counts against the 5 fix rounds.",
+      evid:"merge-verify events; usage rows for the scoped review and security calls.",
+      src:"stages/merge_verify.py"},
+    deploy:{name:"Deploy",kind:"det",kl:"Deterministic · health-gated",sub:"Per-environment lock, coalescing, health probe before cutover, deploy register, then release the schema lock.",
+      what:["Acquires a per-project, per-environment deploy lock; concurrent deploys wait.","Coalesces: if the commit at <code>origin/base</code> is already the deployed commit, the job is done without redeploying.","Runs the project's deploy recipe. Container deploys start a throwaway <em>probe</em> container first: no port binding, no restart policy, all capabilities dropped, no-new-privileges, memory and CPU limits, and a disposable copy of the data directory so migrations cannot touch live data. Only after the probe is running, answers its health URL and exposes every declared environment variable is the old container replaced. The health URL itself is refused if it points at a private or link-local network.","Promotion deploys pull the image by digest, verify the cosign signature against a local public key, and check the repository's declared secrets contract on the host before any container is touched. Any of those failing aborts with nothing changed.","If the deploy touched the pipeline itself, the job is saved as <em>deploying</em> and the fleet is replaced blue-green; the new process verifies the running commit on start-up and finalises the job.","Records the deploy: environment, commit, previous commit, image reference, digest and signature status; creates the release row and advances any promotion."],
+      pass:"Deploy command succeeds and the service comes live on its health URL.",
+      fail:[["Any failure → <span class='rt'>failed</span>, never the fix loop","The worktree is gone after merge, and hiding a deploy failure under a fix stage would blind the supervisor. The supervisor files a fix-forward job on main and the original closes done behind it."]],
+      budget:"Supervisor deploy-fix jobs capped at 3 per project; auto-deploy attempts capped at 3 per unchanged origin tip.",
+      evid:"deploy event with command and output; deploys register row; release and promotion rows; Slack notice when the console was swapped.",
+      src:"stages/deploy.py, deploy.py, docker_deploy.py, deployer_state.py, promotions.py"},
+    fix:{name:"Fix",kind:"ai",kl:"AI · write-scoped fixer",sub:"Repairs the worktree from a structured failure brief, then re-enters lint or merge-verify.",
+      what:["Receives the failed step, failure code, the failing paths authorised by the gate, the plan and the file manifest. Gate history is stripped so it does not chase old findings.","Standing rule: never delete, skip, weaken or rewrite a test, assertion, invariant, security check or gate merely to make the failure disappear. Prefer fixing production code.","A conflict fix is a different agent scoped by <code>git status</code> to the conflicted files.","The same isolation guard as build applies; the runner commits <em>fix attempt N</em> and force-pushes the PR."],
+      pass:"The fixer produced a committed change.",
+      fail:[["No changes → <span class='rt'>failed</span>","A fixer that cannot find anything to change is not retried blindly."],["Budget exhausted → <span class='rt'>failed</span>, human review","Failure text states the round count and the last finding."]],
+      budget:"5 rounds per job by default, overridable per project. Conflict fixes spend rebase attempts instead.",
+      evid:"fix event with commit, numstat, patch and the trigger text; usage row.",
+      src:"stages/fix.py, agents.py fix() and fix_conflict()"},
+    pause:{name:"Provider pause",kind:"ctrl",kl:"Control plane · no AI",sub:"A rate or usage limit pauses only that provider and returns the job to the same step. Pure Python, because AI is exactly what is unavailable.",
+      what:["Each backend translates its own quota signal into one typed exception; auth, billing and invalid-request errors keep ordinary error semantics.","One transaction records the pause in the shared database, returns the job to pending at its current stage with its lease cleared, and writes a durable failover event. Nothing is spent from any budget.","Pause until the reset time plus 5 s, capped at 6 h, with a 10-minute fallback when no reset time is known. If another enabled provider exists, the job resumes immediately there.","Deterministic steps and jobs on other providers keep flowing; operators can lift a pause from the console."],
+      pass:"Resumes at the same step when the pause ends or an alternate provider is available.",
+      fail:[["Lost ownership race → no-op","A stale worker never overwrites current job state."]],
+      budget:"None spent.",
+      evid:"provider_failover job event with source and destination provider; pause row in meta visible to every worker.",
+      src:"limits.py, runner.py _pause(), store.py record_provider_failover()"},
+    failed:{name:"Failed",kind:"term",kl:"Terminal · human review",sub:"Nothing landed. The PR stays open with a comment. The supervisor classifies and, where safe, remediates.",
+      what:["Every failure carries a typed code, an origin (candidate code, AI gate, infrastructure, deployment), a retry disposition and structured detail.","Supervisor classification is deterministic, typed codes first, into 17 classes. Transient and stale-branch failures are requeued; merged-but-stuck jobs are reconciled; deploy failures get a fix-forward job; genuine code failures wait for a person.","Humans resolve from the console or MCP: retry, requeue at a step, fix-forward, resolve with a note, or archive."],
+      pass:"n/a",
+      fail:[["Dead-letter","After 5 supervisor requeues in a class, or on a judgment-class failure, the job is dead-lettered once with its evidence and an escalation is sent."]],
+      budget:"Incident analyst may be consulted once before dead-lettering: 8 diagnoses per scan, 6 per job, confidence ≥ 0.70.",
+      evid:"failure fields on the job, supervisor events, PR comment, Slack thread message.",
+      src:"runner.py _fail(), supervisor.py classify_failure(), incident_analyst.py"},
+    done:{name:"Done",kind:"term",kl:"Terminal",sub:"Merged, deployed and verified live. Dependents are unblocked immediately.",
+      what:["Reached from deploy after the live commit is confirmed, from build when a verified already-satisfied claim is accepted, or from a coalesced deploy.","Every job that depended on this one is unblocked at this moment, not on the next supervisor scan.","The schema lock, if held, is released."],
+      pass:"n/a",fail:[],budget:"n/a",
+      evid:"Terminal status, deployed commit on the job, deploy register row, decision record in the repository.",
+      src:"stages/deploy.py, supervisor.py unblock_ready_dependents()"},
+    supervisor:{name:"Supervisor",kind:"ctrl",kl:"Control plane · elected, deterministic",sub:"One elected process per fleet. Classifies failures, remediates by rule, files fix-forward jobs, and dead-letters to humans.",
+      what:["Elected with a database session-level advisory lock; a standby takes over within 30 s.","Every 120 s: reclaim orphaned slots, check fleet liveness, repair provable dependency cycles, alert on stale jobs, classify and remediate failed jobs, sweep stranded deploying jobs, garbage-collect worktrees, prune the audit log, prune container caches.","Remediation jobs it files are ordinary jobs: they go through every gate. Remediation depth is capped at 2 so a fix of a fix of a fix cannot chain forever.","Optional auto-deploy poller: when origin moves ahead of the deployed commit, file a deploy-only job, at most 3 per unchanged tip."],
+      pass:"n/a",
+      fail:[["Rules fail closed","A cycle it cannot prove safe to cut, a dependency that was archived, or a remediation chain that collapsed is alerted, not forced."]],
+      budget:"5 requeues per failure class; 3 deploy-fix and 3 gate-fix jobs per project; remediation depth 2.",
+      evid:"supervisor_events for every action with failure class and detail; escalations deduplicated per job.",
+      src:"supervisor.py, remediation.py, docs/autonomous-supervisor.md"},
+  };
+
+  // ---------- svg ----------
+  // Laid out on channels: one row for the happy path, one lane for self-heal, one
+  // for escalation. Every connector is orthogonal and every channel is reserved, so
+  // no arrow crosses a box and labels sit in empty space.
+  const NS="http://www.w3.org/2000/svg";
+  const el=(t,a,txt)=>{const n=document.createElementNS(NS,t);for(const k in a)n.setAttribute(k,a[k]);if(txt!=null)n.textContent=txt;return n;};
+  const ORDER=["queue","plan","build","lint","test","review","security","design","merge","deploy","done"];
+  const GATES=["lint","test","review","security","design"];
+  const W=104,H=60,PITCH=134,Y=200,HALF=W/2;
+  const X={};ORDER.forEach((id,i)=>{X[id]=120+i*PITCH;});
+  const BAND_T=34,BAND_B=78;          // provider-limit band
+  const CH_SHORT=132;                 // already-satisfied channel, above the row
+  const CH_BUS=270;                   // gate findings collector
+  const FIXY=302,FIXH=56,FIXW=150;    // self-heal row
+  const CH_RET=394;                   // fix -> lint return
+  const CH_EXH=412;                   // budget exhausted -> failed
+  const SUPY=444,SUPH=60,SUPW=210;    // escalation row
+  const CH_BOT=576;                   // plan/build failures -> failed
+  const FIX={x:790,y:FIXY}, MV={x:X.merge,y:FIXY}, SUP={x:600,y:SUPY};
+  const FAIL={x:1460,y:474,r:34};
+  const KIND={queue:"ctrl",plan:"ai",build:"ai",lint:"det",test:"det",review:"ai",security:"mixed",design:"mixed",merge:"det",deploy:"det",done:"term done",fix:"ai",mverify:"mixed",failed:"term fail",supervisor:"ctrl",pause:"ctrl"};
+  const SUB={queue:"intake · claim",plan:"≤5 stories",build:"worktree · PR",lint:"diff-scoped",test:"suite · guards",review:"read-only",security:"scanners + AI",design:"UI diffs only",merge:"locks · verify",deploy:"probe first",fix:"5 rounds",mverify:"delta only",supervisor:"classify · fix"};
+  const svg=el("svg",{viewBox:"0 0 1560 630",role:"img","aria-label":"Job flow: queued, plan, build, lint, test, review, security, design review, merge, deploy, done, with a self-heal lane holding fix and merge-verify, an escalation lane holding the supervisor and the failed state, and a provider-limit band over the AI steps.","data-layer":"all"});
+  const defs=el("defs",{});
+  const mk=(id,col)=>{const m=el("marker",{id,viewBox:"0 0 10 10",refX:"9",refY:"5",markerWidth:"7",markerHeight:"7",orient:"auto-start-reverse"});m.appendChild(el("path",{d:"M0 0L10 5L0 10z",fill:col}));return m;};
+  [["m-h","var(--ink2)"],["m-fix","var(--ochre)"],["m-fail","var(--fail)"],["m-ctrl","var(--accent)"],["m-conf","var(--warn)"],["m-pass","var(--pass)"]].forEach(([i,c])=>defs.appendChild(mk(i,c)));
+  const pat=el("pattern",{id:"hatch",width:"6",height:"6",patternUnits:"userSpaceOnUse",patternTransform:"rotate(45)"});
+  pat.appendChild(el("rect",{width:"6",height:"6",fill:"var(--surface)"}));
+  pat.appendChild(el("line",{x1:"0",y1:"0",x2:"0",y2:"6",stroke:"var(--ochre-soft)","stroke-width":"3"}));
+  defs.appendChild(pat);svg.appendChild(defs);
+
+  // lane captions, in the empty left margin
+  svg.appendChild(el("text",{x:16,y:BAND_T-12,class:"lane"},"CONTROL PLANE"));
+  svg.appendChild(el("text",{x:16,y:Y-58,class:"lane"},"HAPPY PATH"));
+  svg.appendChild(el("text",{x:140,y:FIXY+34,class:"lane"},"SELF-HEAL"));
+  svg.appendChild(el("text",{x:140,y:SUPY+54,class:"lane"},"ESCALATION"));
+
+  // provider-limit band: one arrow into the row instead of one per AI step
+  const band=el("g",{class:"band n","data-id":"pause",tabindex:"0",role:"button","aria-label":"Provider limit"});
+  band.appendChild(el("rect",{x:X.plan-HALF,y:BAND_T,width:X.design+HALF-(X.plan-HALF),height:BAND_B-BAND_T,rx:6}));
+  const bandMid=(X.plan-HALF+X.design+HALF)/2;
+  band.appendChild(el("text",{x:bandMid,y:BAND_T+18,"text-anchor":"middle"},"PROVIDER LIMIT → pause that provider only · resume at the same step · no budget spent"));
+  band.appendChild(el("text",{x:bandMid,y:BAND_T+34,"text-anchor":"middle",style:"font-size:12px"},"applies to every AI step: plan · build · fix · review · security · design review"));
+  svg.appendChild(band);
+
+  const edges=[];
+  const E=(cls,d,label,lx,ly,anchor)=>{
+    const key=cls.split(" ")[0];
+    const p=el("path",{class:"e "+cls,d,"marker-end":"url(#m-"+(key==="happy"?"h":key)+")"});
+    svg.appendChild(p);
+    if(label)svg.appendChild(el("text",{class:"el "+key,x:lx,y:ly,"text-anchor":anchor||"middle"},label));
+    edges.push(p);return p;
+  };
+
+  // 1. the happy chain
+  const happy={};
+  for(let i=0;i<ORDER.length-1;i++){
+    const a=ORDER[i],b=ORDER[i+1];
+    const x1=X[a]+HALF, x2=(b==="done")?X.done-32:X[b]-HALF;
+    happy[a]=E("happy",`M${x1} ${Y} L${x2} ${Y}`);
+  }
+  // the band points at the row once, in the gap between lint and test
+  const gapLT=(X.lint+X.test)/2;
+  E("ctrl",`M${gapLT} ${BAND_B} L${gapLT} ${Y-H/2-4}`);
+
+  // 2. gate findings drop into a collector bus, then one arrow into fix
+  const gfix={};
+  GATES.forEach(id=>{const x=X[id]+16;gfix[id]=E("fix",`M${x} ${Y+H/2} L${x} ${CH_BUS}`);});
+  svg.appendChild(el("path",{class:"e fix",d:`M${X.lint+16} ${CH_BUS} L${X.design+16} ${CH_BUS}`}));
+  E("fix",`M${FIX.x} ${CH_BUS} L${FIX.x} ${FIXY-2}`);
+  svg.appendChild(el("text",{class:"el fix",x:620,y:CH_BUS+22,"text-anchor":"middle"},"gate finding → fix (5 rounds)"));
+
+  // 3. fix returns to lint, in its own channel below the fix row
+  const fixBack=E("fix",`M${FIX.x-FIXW/2+22} ${FIXY+FIXH} L${FIX.x-FIXW/2+22} ${CH_RET} L${X.lint-16} ${CH_RET} L${X.lint-16} ${Y+H/2+2}`,
+    "re-lint → re-test → re-review",(X.lint-16+FIX.x-FIXW/2+22)/2,CH_RET+18,"middle");
+
+  // 4. merge boundary: down to merge-verify, back up when the delta is clean
+  E("conf",`M${X.merge-16} ${Y+H/2} L${X.merge-16} ${FIXY-2}`);
+  E("pass",`M${X.merge+16} ${FIXY} L${X.merge+16} ${Y+H/2+2}`);
+  svg.appendChild(el("text",{class:"el conf",x:X.merge,y:FIXY+FIXH+16,"text-anchor":"middle"},"↓ conflict · base advanced"));
+  svg.appendChild(el("text",{class:"el pass",x:X.merge,y:FIXY+FIXH+32,"text-anchor":"middle"},"↑ delta verified"));
+
+  // 5. fix ↔ merge-verify
+  E("conf",`M${FIX.x+FIXW/2} ${FIXY+18} L${MV.x-FIXW/2-2} ${FIXY+18}`,"conflict fix",(FIX.x+MV.x)/2,FIXY+12,"middle");
+  E("fix",`M${MV.x-FIXW/2} ${FIXY+40} L${FIX.x+FIXW/2+2} ${FIXY+40}`,"delta fails",(FIX.x+MV.x)/2,FIXY+54,"middle");
+
+  // 6. exits to failed: deploy, an exhausted fix budget, and the early plan/build refusals
+  E("fail",`M${X.deploy} ${Y+H/2} L${X.deploy} ${Y+62} L1520 ${Y+62} L1520 ${FAIL.y} L${FAIL.x+FAIL.r+2} ${FAIL.y}`);
+  svg.appendChild(el("text",{class:"el fail",x:1420,y:Y+82,"text-anchor":"middle"},"deploy failed"));
+  svg.appendChild(el("text",{class:"el fail",x:1420,y:Y+98,"text-anchor":"middle"},"never the fix loop"));
+  E("fail",`M${FIX.x+FIXW/2-22} ${FIXY+FIXH} L${FIX.x+FIXW/2-22} ${CH_EXH} L${FAIL.x-FAIL.r-30} ${CH_EXH} L${FAIL.x-FAIL.r-30} ${FAIL.y-8} L${FAIL.x-FAIL.r-2} ${FAIL.y-8}`,
+    "budget exhausted → human review",FIX.x+FIXW/2-14,CH_EXH-8,"start");
+  const CH_EARLY=252, LEFT=60;
+  svg.appendChild(el("path",{class:"e fail",d:`M${X.plan} ${Y+H/2} L${X.plan} ${CH_EARLY}`}));
+  svg.appendChild(el("path",{class:"e fail",d:`M${X.build} ${Y+H/2} L${X.build} ${CH_EARLY}`}));
+  svg.appendChild(el("path",{class:"e fail",d:`M${X.build} ${CH_EARLY} L${LEFT} ${CH_EARLY}`}));
+  E("fail",`M${LEFT} ${CH_EARLY} L${LEFT} ${CH_BOT} L${FAIL.x} ${CH_BOT} L${FAIL.x} ${FAIL.y+FAIL.r+2}`,
+    "scope refused · isolation violation · no diff → failed",760,CH_BOT+22,"middle");
+
+  // 7. the supervisor: classifies a failure, files a job that runs every gate again
+  E("ctrl",`M${FAIL.x-FAIL.r-2} ${FAIL.y} L${SUP.x+SUPW/2+2} ${FAIL.y}`,
+    "classify (17 classes) · requeue · reconcile · fix-forward",(FAIL.x+SUP.x)/2,FAIL.y-12,"middle");
+  E("ctrl",`M${SUP.x-SUPW/2} ${FAIL.y} L${X.queue} ${FAIL.y} L${X.queue} ${Y+H/2+2}`,
+    "files a job → every gate again",305,FAIL.y-14,"middle");
+
+  // 8. the verified no-diff shortcut, in the channel above the row
+  E("pass",`M${X.build} ${Y-H/2} L${X.build} ${CH_SHORT} L${X.done} ${CH_SHORT} L${X.done} ${Y-32}`,
+    "verified already satisfied → done",(X.build+X.done)/2,CH_SHORT-10,"middle");
+
+  // ---------- nodes ----------
+  const nodes={};
+  const node=(id,cx,cy,w,h,label,sub)=>{
+    const g=el("g",{class:"n "+KIND[id],"data-id":id,tabindex:"0",role:"button","aria-label":label});
+    if(id==="done"||id==="failed"){
+      g.appendChild(el("circle",{cx,cy,r:id==="failed"?FAIL.r:30}));
+      g.appendChild(el("text",{class:"t",x:cx,y:cy+5,"text-anchor":"middle"},label));
+    }else{
+      g.appendChild(el("rect",{x:cx-w/2,y:cy-h/2,width:w,height:h,rx:6,class:KIND[id]==="ai"?"h":""}));
+      g.appendChild(el("text",{class:"t",x:cx,y:sub?cy-4:cy+5,"text-anchor":"middle"},label));
+      if(sub)g.appendChild(el("text",{class:"s",x:cx,y:cy+15,"text-anchor":"middle"},sub));
+    }
+    svg.appendChild(g);nodes[id]=g;return g;
+  };
+  const NODE_LABEL={design:"Design",security:"Security",queue:"Queued"};
+  ORDER.forEach(id=>{if(id==="done")node(id,X.done,Y,0,0,"Done");else node(id,X[id],Y,W,H,NODE_LABEL[id]||STEPS[id].name,SUB[id]);});
+  node("fix",FIX.x,FIXY+FIXH/2,FIXW,FIXH,"Fix",SUB.fix);
+  node("mverify",MV.x,FIXY+FIXH/2,FIXW,FIXH,"Merge-verify",SUB.mverify);
+  node("supervisor",SUP.x,SUPY+SUPH/2,SUPW,SUPH,"Supervisor",SUB.supervisor);
+  node("failed",FAIL.x,FAIL.y,0,0,"Failed");
+  nodes.pause=band;
+  document.getElementById("flowHost").appendChild(svg);
+
+  // ---------- panel ----------
+  const panel=document.getElementById("panel");
+  const stepBtns=document.getElementById("stepBtns");
+  const NAV=["queue","plan","build","lint","test","review","security","design","merge","mverify","deploy","done","fix","pause","failed","supervisor"];
+  NAV.forEach(id=>{const b=document.createElement("button");b.className="stepbtn";b.textContent=STEPS[id].name;b.dataset.id=id;b.setAttribute("role","tab");b.addEventListener("click",()=>select(id));stepBtns.appendChild(b);});
+  const kindCls={ai:"ai",det:"det",mixed:"mixed",ctrl:"ctrl",term:"term"};
+  let current=null;
+  function select(id){
+    current=id;const s=STEPS[id];
+    Object.values(nodes).forEach(n=>n.classList.remove("sel"));nodes[id].classList.add("sel");
+    stepBtns.querySelectorAll(".stepbtn").forEach(b=>b.setAttribute("aria-current",b.dataset.id===id?"true":"false"));
+    const fails=s.fail.length?`<ul>${s.fail.map(f=>`<li><strong>${f[0]}</strong><br>${f[1]}</li>`).join("")}</ul>`:"—";
+    panel.innerHTML=`<span class="kind ${kindCls[s.kind]}">${s.kl}</span><h3>${s.name}</h3><p class="sub">${s.sub}</p>
+      <dl><dt>What</dt><dd><ul>${s.what.map(w=>`<li>${w}</li>`).join("")}</ul></dd>
+      <dt>Passes</dt><dd>${s.pass}</dd>
+      <dt>On failure</dt><dd>${fails}</dd>
+      <dt>Budget</dt><dd>${s.budget}</dd>
+      <dt>Evidence</dt><dd>${s.evid}</dd></dl>
+      <p class="src">Source: <code>${s.src}</code></p>`;
+    try{localStorage.setItem("hyqs-pitch-step",id);}catch(e){}
+  }
+  Object.entries(nodes).forEach(([id,g])=>{g.addEventListener("click",()=>select(id));g.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();select(id);}});});
+  document.addEventListener("keydown",e=>{if(e.target.tagName==="INPUT"||e.target.tagName==="TEXTAREA")return;const i=NAV.indexOf(current);if(e.key==="ArrowRight"){select(NAV[(i+1)%NAV.length]);}else if(e.key==="ArrowLeft"){select(NAV[(i-1+NAV.length)%NAV.length]);}});
+  let initial="plan";try{const s=localStorage.getItem("hyqs-pitch-step");if(s&&STEPS[s])initial=s;}catch(e){}
+  select(initial);
+
+  // layers
+  document.querySelectorAll(".tbtn[data-layer]").forEach(b=>b.addEventListener("click",()=>{document.querySelectorAll(".tbtn[data-layer]").forEach(x=>x.setAttribute("aria-pressed","false"));b.setAttribute("aria-pressed","true");svg.setAttribute("data-layer",b.dataset.layer);}));
+
+  // ---------- simulation ----------
+  const runBtn=document.getElementById("runBtn"),prevBtn=document.getElementById("simPrev"),nextBtn=document.getElementById("simNext"),posEl=document.getElementById("simPos");
+  const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const STEP_MS=7000;
+  const tok=el("circle",{class:"tok",r:7,cx:X.queue,cy:Y,opacity:0});svg.appendChild(tok);
+  const script=[
+    ["queue","Job filed from an MCP client. Claimed by worker host-2 under the claim lock."],
+    ["plan","Planner emits 2 stories, 4 target files. Scope gate passes."],
+    ["build","Coder edits 4 files in worktree job-4124. Runner commits, pushes, opens PR."],
+    ["lint","ruff auto-fixes 2 import orders; commits. Passed."],
+    ["test","pytest: 1 failure in test_ledger.py. → fix round 1 of 5.",gfix.test],
+    ["fix","Fixer corrects the rounding path; runner commits 'fix attempt 1', force-pushes PR.",fixBack],
+    ["lint","Passed."],
+    ["test","pytest passed. 3 invariant checks passed."],
+    ["review","Verdict: pass. 1 low finding noted, non-blocking."],
+    ["security","bandit, semgrep, detect-secrets, pip-audit clean. AI verdict: pass."],
+    ["design","Backend-only diff: skipped."],
+    ["merge","Base advanced by 1 commit: absorbed cleanly, post-merge validation passed. Squash-merged. ADR #4124 committed."],
+    ["deploy","Probe container healthy in 14 s. Cutover. Deploy register: commit a91f…, digest sha256:7c…"],
+    ["done","Done in 31 min. 2 dependents unblocked."]
+  ];
+  let idx=-1,playing=false,timer=null;
+  function litOff(){Object.values(nodes).forEach(n=>n.classList.remove("lit"));edges.forEach(e=>e.classList.remove("lit"));}
+  function showStep(i){
+    idx=i;litOff();
+    const [id,msg,edge]=script[i];const g=nodes[id];g.classList.add("lit");if(edge)edge.classList.add("lit");
+    const c=g.querySelector("rect,circle");let cx,cy;if(c.tagName==="circle"){cx=+c.getAttribute("cx");cy=+c.getAttribute("cy");}else{cx=+c.getAttribute("x")+ +c.getAttribute("width")/2;cy=+c.getAttribute("y")-10;}
+    tok.setAttribute("cx",cx);tok.setAttribute("cy",cy);tok.setAttribute("opacity",1);
+    select(id);
+    const note=document.createElement("p");note.className="sub";note.style.cssText="margin-top:14px;padding:10px 12px;border-left:3px solid var(--accent);background:var(--accent-soft);color:var(--ink);font-size:13.5px";
+    note.innerHTML=`<span class="eyebrow" style="display:block;margin-bottom:4px">Simulated job #4124 · step ${i+1} of ${script.length}</span>${msg}`;
+    panel.insertBefore(note,panel.children[3]);
+    render();
+  }
+  function render(){
+    posEl.textContent=idx<0?"":`${idx+1}/${script.length}`;
+    prevBtn.disabled=idx<=0;nextBtn.disabled=idx>=script.length-1;
+    runBtn.textContent=playing?"⏸ Pause":(idx>=script.length-1?"↻ Replay":(idx<0?"▶ Play a sample job":"▶ Resume"));
+  }
+  function schedule(){clearTimeout(timer);timer=setTimeout(()=>{if(!playing)return;if(idx>=script.length-1){playing=false;render();return;}showStep(idx+1);schedule();},reduce?STEP_MS:STEP_MS);}
+  function play(){if(idx>=script.length-1){reset();}playing=true;if(idx<0)showStep(0);render();schedule();}
+  function pause(){playing=false;clearTimeout(timer);render();}
+  function reset(){pause();idx=-1;litOff();tok.setAttribute("opacity",0);render();}
+  runBtn.addEventListener("click",()=>{playing?pause():play();});
+  prevBtn.addEventListener("click",()=>{if(idx>0){pause();showStep(idx-1);}});
+  nextBtn.addEventListener("click",()=>{pause();if(idx<script.length-1)showStep(idx+1);});
+  document.addEventListener("keydown",e=>{if(e.target.tagName==="INPUT"||e.target.tagName==="TEXTAREA")return;if(e.key===" "&&idx>=0&&document.activeElement.tagName!=="BUTTON"){e.preventDefault();playing?pause():play();}});
+  render();
+
+})();

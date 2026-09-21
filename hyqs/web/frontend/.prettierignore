@@ -1,0 +1,6 @@
+# Generated and published static assets: these are build output, not source.
+# docs/site/build.py writes hyqs/web/frontend/public/how-it-works/** verbatim from
+# docs/site/, so formatting the copy here would silently desynchronise it from its
+# source and fail any check that the two match.
+public/
+dist/

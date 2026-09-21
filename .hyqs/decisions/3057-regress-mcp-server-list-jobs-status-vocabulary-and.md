@@ -1,0 +1,9 @@
+# Job #3057: Regress mcp_server.list_jobs status vocabulary and cursor paging
+
+**Date:** 2026-08-01
+
+This diff expands test coverage for the `list_jobs` MCP method to validate the complete status filter vocabulary and pagination behavior. The first test consolidates a parametrized test into a single test that verifies all six statuses plus "active", "archived", and "all" filters return the correct jobs. The cursor pagination test scales up from 3 jobs to 123 jobs across multiple projects to verify that pagination is complete, ordered correctly, project-scoped, and returns properly-sized pages (50 items per page except the last). The final test uses the `job_to_dict` helper to validate that responses match the expected serialization format when omitting cursor pagination. Together, these changes ensure the list_jobs endpoint handles its full status vocabulary correctly and pages through large datasets without losing, duplicating, or leaking jobs across project boundaries.
+This diff expands test coverage for the `list_jobs` MCP method to validate the complete status filter vocabulary and pagination behavior. The first test consolidates a parametrized test into a single test that verifies all six statuses plus "active", "archived", and "all" filters return the correct jobs. The cursor pagination test scales up from 3 jobs to 123 jobs across multiple projects to verify that pagination is complete, ordered correctly, project-scoped, and returns properly-sized pages (50 items per page except the last). The final test uses the `job_to_dict` helper to validate that responses match the expected serialization format when omitting cursor pagination. Together, these changes ensure the list_jobs endpoint handles its full status vocabulary correctly and pages through large datasets without losing, duplicating, or leaking jobs across project boundaries.
+
+## Files touched
+- tests/test_mcp_server.py

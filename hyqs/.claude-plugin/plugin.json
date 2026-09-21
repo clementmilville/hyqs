@@ -1,0 +1,6 @@
+{
+  "name": "hyqs",
+  "version": "0.1.0",
+  "description": "Hyqs's own know-how, shipped as skills the agent loads at runtime.",
+  "author": { "name": "Hyqs" }
+}

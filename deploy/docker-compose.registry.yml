@@ -1,0 +1,40 @@
+# Self-hosted OCI registry (Zot) for multi-environment deployment (Epic 81).
+#
+# This is the build-once artifact plane: images are pushed here once by the
+# build host and promoted (pulled by digest) across environments, instead of
+# rebuilding per environment. Zot is a lightweight, spec-compliant OCI
+# registry with native support for OCI Referrers (used by cosign to store
+# signatures alongside an image) — no separate signature store needed.
+#
+# HYQS_REGISTRY_DATA_DIR, HYQS_REGISTRY_HTPASSWD are required and read from
+# the environment (the gitignored repo-root .env), like POSTGRES_PASSWORD in
+# docker-compose.yml — they have no baked-in default, so compose fails fast
+# with a clear message if either is unset. Bring it up with:
+#
+#   docker compose --env-file .env -f deploy/docker-compose.registry.yml up -d
+#
+# HYQS_REGISTRY_DATA_DIR must be an absolute path OUTSIDE the repo (mirrors
+# the HYQS_DATA_DIR convention in .env.example) — registry blobs are never
+# committed. HYQS_REGISTRY_HTPASSWD is a single htpasswd file (bcrypt hashes)
+# holding both the push and pull credential classes; see deploy/README.md for
+# how to generate the cosign keypair and create both accounts.
+#
+# Like Postgres above, this binds to loopback only: it is never exposed
+# directly to the internet. nginx fronts it over TLS (deploy/setup-nginx-registry.sh).
+
+services:
+  zot:
+    image: ghcr.io/project-zot/zot:latest
+    container_name: hyqs-registry
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${HYQS_REGISTRY_PORT:-5100}:5000"
+    volumes:
+      - ${HYQS_REGISTRY_DATA_DIR:?set HYQS_REGISTRY_DATA_DIR in the environment or .env (absolute path outside the repo)}:/var/lib/registry
+      - ./zot-config.json:/etc/zot/config.json:ro
+      - ${HYQS_REGISTRY_HTPASSWD:?set HYQS_REGISTRY_HTPASSWD in the environment or .env (path to an htpasswd file)}:/etc/zot/htpasswd:ro
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "-", "http://127.0.0.1:5000/v2/"]
+      interval: 5s
+      timeout: 3s
+      retries: 10

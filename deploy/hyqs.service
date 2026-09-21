@@ -1,0 +1,31 @@
+[Unit]
+Description=Hyqs — 24/7 personal AI orchestration agent
+# Wait for the network so Telegram long-polling and the Claude API are reachable.
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+# --- EDIT ME ---------------------------------------------------------------
+# Absolute path to your checkout. `uv` must be on PATH for the unit's user;
+# if `which uv` prints e.g. ~/.local/bin/uv, the Environment line below covers it.
+WorkingDirectory=%h/hyqs-ai
+ExecStart=uv run hyqs
+# ---------------------------------------------------------------------------
+
+# uv / pipx default install location, plus the usual system bins.
+Environment=PATH=%h/.local/bin:/usr/local/bin:/usr/bin:/bin
+
+# Keep it alive: restart on any exit, but back off if it crash-loops.
+Restart=always
+RestartSec=5
+StartLimitIntervalSec=60
+StartLimitBurst=5
+
+# Logs go to the journal: `journalctl --user -u hyqs -f`.
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=hyqs
+
+[Install]
+WantedBy=default.target

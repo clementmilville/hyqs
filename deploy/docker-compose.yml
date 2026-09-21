@@ -1,0 +1,45 @@
+# Shared Postgres for the Hyqs build pipeline.
+#
+# This is the coordination plane: every host's `hyqs-pipeline` worker (and the
+# web console) connects here and claims/leases jobs. Data is persisted in a
+# named volume (`hyqs_pgdata`) so the container can be recreated without losing
+# the projects / jobs / usage history.
+#
+# POSTGRES_PASSWORD is required and read from the environment (the gitignored
+# repo-root .env), so pass --env-file; compose only auto-loads .env from its own
+# directory, not the repo root:
+#
+#   docker compose --env-file .env -f deploy/docker-compose.yml up -d
+#   # HYQS_DB_URL (same .env) points the app at it, e.g.
+#   #   HYQS_DB_URL=postgresql://hyqs:<password>@localhost:5432/hyqs
+#
+# For a real multi-host deploy, expose 5432 to the worker hosts only (it is
+# loopback-only here) and require TLS (sslmode=require).
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: hyqs-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: hyqs
+      # Comes only from the environment (e.g. the gitignored repo-root .env).
+      # Required with no default, so the secret is never baked into this file and
+      # compose fails fast with a clear message if it isn't set.
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in the environment or .env}
+      POSTGRES_DB: hyqs
+    ports:
+      # Bind to loopback only: the DB is reachable from this host's app/pipeline
+      # but never exposed to the internet. For multi-host, front it with a
+      # private network / TLS instead of publishing on 0.0.0.0.
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - hyqs_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hyqs -d hyqs"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  hyqs_pgdata:

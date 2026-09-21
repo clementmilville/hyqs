@@ -1,0 +1,71 @@
+[Unit]
+# A constrained deploy-only worker (`hyqs-pipeline --deployer`, see
+# hyqs/pipeline/__main__.py) pinned to this host via HYQS_HOST_NAME below. It
+# only ever claims DEPLOY-stage jobs targeting environments enrolled to this
+# host (see deploy/README.md's host-pinning section, job #1776/#1779-1781) —
+# it never runs plan/build/fix/review, so it needs no AI provider credential.
+Description=Hyqs deployer worker (constrained deploy-only, pinned to HYQS_HOST_NAME)
+After=network-online.target docker.service
+Wants=network-online.target
+# Back off if it crash-loops. These keys only work in [Unit]; in [Service]
+# systemd logs "Unknown key … ignoring" and Restart=always loops forever
+# (this is how the 2026-07-12 fleet outage kept looping for 40 min — see
+# deploy/hyqs-pipeline@.service).
+StartLimitIntervalSec=60
+StartLimitBurst=5
+
+[Service]
+Type=simple
+# --- EDIT ME ---------------------------------------------------------------
+# The image built from deploy/deployer.Dockerfile: build it locally
+#   docker build -f deploy/deployer.Dockerfile -t hyqs-deployer:latest .
+# or pull it from your registry (see deploy/README.md's "Container registry"
+# section for where the pull credential lives) and set that ref here instead.
+Environment=HYQS_DEPLOYER_IMAGE=hyqs-deployer:latest
+# The shared control-plane Postgres every worker (on every host) coordinates
+# through — the same DSN the chat daemon and hyqs-pipeline workers use.
+Environment=HYQS_DB_URL=postgresql://hyqs:hyqs@localhost:5432/hyqs
+# This host's enrolled identity. Must match the --name given to
+# `hyqs-pipeline enroll --name <host>` (see deploy/README.md) — it pins
+# DEPLOY-stage jobs for this host's environment(s) to this worker only.
+Environment=HYQS_HOST_NAME=CHANGE_ME
+# Persists this host's enrollment key + deployer state
+# (hyqs/pipeline/deployer_state.py) across container restarts. Must be a
+# stable path on the HOST, not the container's ephemeral filesystem, or this
+# host loses its enrolled identity every restart.
+ExecStartPre=/usr/bin/mkdir -p %h/.hyqs/deployer-data
+ExecStart=/usr/bin/docker run --rm --name hyqs-deployer \
+    -e HYQS_DB_URL=${HYQS_DB_URL} \
+    -e HYQS_HOST_NAME=${HYQS_HOST_NAME} \
+    -e HYQS_DATA_DIR=/data \
+    -v %h/.hyqs/deployer-data:/data \
+    -v /var/run/docker.sock:/var/run/docker.sock \
+    ${HYQS_DEPLOYER_IMAGE}
+# ---------------------------------------------------------------------------
+
+# Keep it alive: restart on any exit (crash-loop backoff lives in [Unit]).
+Restart=always
+RestartSec=5
+
+# Signal meanings (see hyqs/pipeline/__main__.py): systemd's default stop
+# signal is SIGTERM, which the containerized process treats as a graceful
+# drain with a LONG ceiling (HYQS_PIPELINE_DEPLOY_DRAIN_TIMEOUT, default
+# 2400s) so an in-flight deploy is never killed mid-flight by a `systemctl
+# stop`/restart. A second SIGTERM forces an immediate stop. `docker run`
+# (run in the foreground here, no `-d`) forwards the signal systemd sends
+# straight into the container's PID 1 — the same drain behavior as the
+# bare-process hyqs-pipeline.service. TimeoutStopSec must clear the long
+# ceiling so systemd doesn't SIGKILL mid-drain. Unlike hyqs-pipeline.service,
+# no KillMode=mixed override is needed here: the only process in this unit's
+# own cgroup is the `docker run` client itself, not the container's process
+# tree (that lives in the host dockerd's cgroups), so there is nothing else
+# in-cgroup for the default KillMode=control-group to prematurely TERM.
+TimeoutStopSec=2460
+
+# Logs go to the journal: `journalctl --user -u hyqs-deployer -f`.
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=hyqs-deployer
+
+[Install]
+WantedBy=default.target

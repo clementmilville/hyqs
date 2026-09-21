@@ -1,0 +1,93 @@
+<section id="headline"><div class="wrap">
+  <div class="sec-head">
+    <div><div class="eyebrow">The headline</div><h2 style="margin-top:10px">A shipped, reviewed, security-scanned, deployed change for the price of two minutes of an engineer.</h2></div>
+    <p class="lede">From the pipeline's own ledger: 3,862 jobs across six repositories, 30 June to 25 August 2026, read from the database with no adjustment. At a loaded senior-engineer cost of €100 an hour, the median change costs about ninety seconds of attention in model spend.</p>
+  </div>
+  <div class="figs four">
+    <div class="fig"><b>$3.69</b><small>all-in model cost per delivered change, every job and operation included</small></div>
+    <div class="fig"><b>$2.41</b><small>median delivered change; mean $3.42, maximum $72.55</small></div>
+    <div class="fig"><b>40 min</b><small>median wall clock from request to live; 13 min of active stage time</small></div>
+    <div class="fig"><b>76.5%</b><small>of jobs the requester let run shipped unattended; the rest stopped at a gate with evidence</small></div>
+  </div>
+</div></section>
+
+<section id="calc"><div class="wrap">
+  <div class="sec-head">
+    <div><div class="eyebrow">Your numbers</div><h2 style="margin-top:10px">A calculator with the ledger's defaults and your inputs.</h2></div>
+    <p class="lede">Change the volume, the rework share and the engineer cost. The model bill uses the recorded cost per delivered change; the comparison uses the median active stage time as the attention a person would otherwise have spent driving the same change through review and deployment.</p>
+  </div>
+  <div class="widget">
+    <div class="ctrls">
+      <div><label for="cVol">Changes per month</label><output id="oVol">200</output><input id="cVol" type="range" min="10" max="2000" step="10" value="200"></div>
+      <div><label for="cCost">Model cost per delivered change ($)</label><output id="oCost">3.69</output><input id="cCost" type="range" min="1" max="15" step="0.1" value="3.69"><span class="small">ledger: $3.69 all-in, $3.87 ordinary work</span></div>
+      <div><label for="cRework">Rework share of tokens (%)</label><output id="oRework">19.5</output><input id="cRework" type="range" min="0" max="50" step="0.5" value="19.5"><span class="small">ledger: 19.5% (fix rounds, merge re-verification, diagnosis)</span></div>
+      <div><label for="cEng">Loaded engineer cost (€/h)</label><output id="oEng">100</output><input id="cEng" type="range" min="40" max="250" step="5" value="100"></div>
+      <div><label for="cMin">Human minutes saved per change</label><output id="oMin">13</output><input id="cMin" type="range" min="5" max="120" step="1" value="13"><span class="small">ledger: 13 min median active stage time</span></div>
+    </div>
+    <div class="result">
+      <div><b id="rBill">$738</b><small>model bill per month</small></div>
+      <div><b id="rRework">$144</b><small>of it is rework, the line to optimise</small></div>
+      <div><b id="rHours">43 h</b><small>engineer hours not spent driving changes</small></div>
+      <div><b id="rEq">€4,333</b><small>equivalent engineer cost at your rate</small></div>
+      <div><b id="rRatio">5.9×</b><small>engineer cost to model bill</small></div>
+    </div>
+    <p class="small" style="margin-top:12px">Assumptions are yours to set. The calculator does not claim the engineer disappears; it prices the attention the pipeline absorbs per change.</p>
+  </div>
+</div></section>
+
+<section id="ledger"><div class="wrap">
+  <div class="sec-head">
+    <div><div class="eyebrow">How cost is measured</div><h2 style="margin-top:10px">Four token classes, a price table, and the SDK's own figure whenever it reports one.</h2></div>
+    <p class="lede">Every model call writes a usage row with provider, model, input, output, cache-write and cache-read tokens, the cost and the stage it served. The cost comes from the provider SDK when it reports one, otherwise from the price table. Interactive developer sessions are captured by a hook into the same ledger, so human-in-the-loop work is not invisible.</p>
+  </div>
+  <div class="versus">
+    <div class="pr"><h4>Where the tokens go, by stage</h4>
+      <div class="bars">
+        <div class="bar"><span>Build</span><div class="tr"><i style="width:46.7%"></i></div><span class="v">46.7%</span></div>
+        <div class="bar"><span>Fix</span><div class="tr"><i class="o" style="width:17.6%"></i></div><span class="v">17.6%</span></div>
+        <div class="bar"><span>Plan</span><div class="tr"><i style="width:15.4%"></i></div><span class="v">15.4%</span></div>
+        <div class="bar"><span>Review</span><div class="tr"><i style="width:13.0%"></i></div><span class="v">13.0%</span></div>
+        <div class="bar"><span>Security</span><div class="tr"><i style="width:3.7%"></i></div><span class="v">3.7%</span></div>
+        <div class="bar"><span>Other</span><div class="tr"><i style="width:3.6%"></i></div><span class="v">3.6%</span></div>
+      </div>
+      <p style="margin-top:12px">Plan is 15% of tokens but 24% of cost; build is 47% of tokens and 38% of cost. Context is what costs, which is why the file manifests and symbol index handed to agents matter more than the model tier.</p></div>
+    <div class="pr"><h4>A reading machine</h4>
+      <div class="tokring">
+        <svg viewBox="0 0 120 120" role="img" aria-label="Token mix: 84.5 percent cache read, 9.9 percent fresh input, 4.7 percent cache write, 1 percent output">
+          <circle cx="60" cy="60" r="46" fill="none" stroke="var(--surface2)" stroke-width="16"/>
+          <circle cx="60" cy="60" r="46" fill="none" stroke="var(--steel)" stroke-width="16" stroke-dasharray="244.2 289" transform="rotate(-90 60 60)"/>
+          <circle cx="60" cy="60" r="46" fill="none" stroke="var(--accent)" stroke-width="16" stroke-dasharray="28.6 289" stroke-dashoffset="-244.2" transform="rotate(-90 60 60)"/>
+          <circle cx="60" cy="60" r="46" fill="none" stroke="var(--ochre)" stroke-width="16" stroke-dasharray="13.6 289" stroke-dashoffset="-272.8" transform="rotate(-90 60 60)"/>
+          <circle cx="60" cy="60" r="46" fill="none" stroke="var(--fail)" stroke-width="16" stroke-dasharray="2.9 289" stroke-dashoffset="-286.4" transform="rotate(-90 60 60)"/>
+        </svg>
+        <ul><li><i style="background:var(--steel)"></i>84.5% cache read</li><li><i style="background:var(--accent)"></i>9.9% fresh input</li><li><i style="background:var(--ochre)"></i>4.7% cache write</li><li><i style="background:var(--fail)"></i>1.0% output</li></ul>
+      </div>
+      <p style="margin-top:12px">86 cached tokens are read for every token written. Cache reads are priced at a tenth of fresh input, so the cost of a change is mostly the cost of re-reading the repository.</p></div>
+  </div>
+  <p class="small" style="margin-top:14px">The price table per model and token class: <a href="/how-it-works/reference/#pricing">Reference</a>.</p>
+</div></section>
+
+<section id="quality"><div class="wrap">
+  <div class="sec-head">
+    <div><div class="eyebrow">The quality bill</div><h2 style="margin-top:10px">Rework is measured, not estimated, and it is the number we work on.</h2></div>
+    <p class="lede">Fix rounds, merge re-verification and incident diagnosis are attributed to their own stages in the ledger, so the share of tokens spent because a gate said no is a query.</p>
+  </div>
+  <div class="ticker">
+    <div class="tk"><b>19.5%</b><small>of delivery tokens are identifiable rework, $1,514.67 in the period</small></div>
+    <div class="tk"><b>29.8%</b><small>of ordinary jobs used at least one fix round</small></div>
+    <div class="tk"><b>60.9%</b><small>shipped clean on the first pass</small></div>
+    <div class="tk"><b>4.66 M</b><small>tokens per delivered change; median 2.68 M</small></div>
+  </div>
+</div></section>
+
+<section id="selfaudit"><div class="wrap">
+  <div class="sec-head">
+    <div><div class="eyebrow">Audit the meter</div><h2 style="margin-top:10px">The report that produced these figures also audits its own meter. We bring that audit to the table.</h2></div>
+    <p class="lede">A cost figure is only as good as the ledger behind it. The economics report checks the ledger against a second one and reports the disagreement, so the headline arrives with its error bars.</p>
+  </div>
+  <div class="versus">
+    <div class="callout"><p><strong>Two ledgers disagree by six percent.</strong> The usage rows hold 11.983 billion tokens and $9,486; the stage-event ledger holds 11.285 billion and $8,865. The event ledger understates by 697.7 million tokens and $620.87, because usage is written after a stage completes and provider failures, timeouts, cancellations and process deaths can occur first.</p></div>
+    <div class="callout"><p><strong>Three coverage gaps, quantified.</strong> 405 ordinary jobs have no usage row, 24 of them delivered. 93.8% of historical usage rows lack model metadata, so the Codex-versus-Claude split cannot be quoted. 3,635 rows report zero cost, most of them unpriced models before the price table was completed.</p></div>
+  </div>
+  <div class="band"><h4>What that changes</h4><p>The headline is a recorded minimum, not an estimate. The report's recommendation, one durable stage-attempt ledger opened before every provider call and finalised on every exit path, reconciled against provider logs, is on the roadmap. Project comparisons reflect different models, dates and workloads as well as engineering efficiency, and are presented that way.</p></div>
+</div></section>

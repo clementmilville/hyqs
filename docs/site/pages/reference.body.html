@@ -1,0 +1,103 @@
+<section id="settings"><div class="wrap">
+  <div class="sec-head">
+    <div><div class="eyebrow">Settings explorer</div><h2 style="margin-top:10px">Every tunable, its default, and what it controls.</h2></div>
+    <p class="lede">Configuration is environment variables read once at boot. Filter by group or search. Defaults are what ships; the live fleet overrides a handful.</p>
+  </div>
+  <div class="widget">
+    <div class="search">
+      <input id="setSearch" type="search" placeholder="Search a variable, a default, or what it controls…" aria-label="Search settings" style="max-width:420px">
+      <button class="chipbtn" data-g="all" aria-pressed="true">All</button>
+      <button class="chipbtn" data-g="capacity" aria-pressed="false">Capacity</button>
+      <button class="chipbtn" data-g="budgets" aria-pressed="false">Budgets</button>
+      <button class="chipbtn" data-g="providers" aria-pressed="false">Providers</button>
+      <button class="chipbtn" data-g="deploy" aria-pressed="false">Deploy</button>
+      <button class="chipbtn" data-g="supervisor" aria-pressed="false">Supervisor</button>
+      <button class="chipbtn" data-g="web" aria-pressed="false">Web and identity</button>
+      <button class="chipbtn" data-g="registry" aria-pressed="false">Registry</button>
+    </div>
+    <div class="tbl"><table id="setTbl"><thead><tr><th>Variable</th><th>Default</th><th>Controls</th><th>Group</th></tr></thead><tbody></tbody></table></div>
+    <p class="small" id="setCount" style="margin-top:10px"></p>
+  </div>
+</div></section>
+
+<section id="roles"><div class="wrap">
+  <div class="sec-head">
+    <div><div class="eyebrow">Tool policies</div><h2 style="margin-top:10px">The exact tool set per agent role.</h2></div>
+    <p class="lede">Enforced by the SDK's allowed and disallowed tool lists, then by the worktree isolation guard and the gate guard after the fact.</p>
+  </div>
+  <div class="tbl"><table>
+    <thead><tr><th>Role</th><th>Used by</th><th>Tools</th><th>Permission mode</th><th>Extra fences</th></tr></thead>
+    <tbody>
+      <tr><td>Coder</td><td>build, fix, conflict fix</td><td><span class="mono">Read Write Edit Bash Glob Grep TodoWrite</span></td><td>acceptEdits, writes confined to the worktree path</td><td>Isolation guard: anything newly dirtied outside the worktree fails the job. 120 turns.</td></tr>
+      <tr><td>Planner</td><td>plan, architect, intake interview, ideation</td><td><span class="mono">Read Glob Grep Bash</span></td><td>bypassPermissions so read-only shell works unprompted</td><td><span class="mono">Write Edit NotebookEdit</span> disallowed at the SDK. Planning runs in a throwaway detached worktree.</td></tr>
+      <tr><td>Reviewer</td><td>review, security, design review, merge-verify gates, incident analyst, implementation summary</td><td><span class="mono">Read Glob Grep Bash</span></td><td>bypassPermissions</td><td>Same disallow list, plus the gate guard: worktree snapshot before and after; a mutation is discarded, the gate re-run once, then the job fails.</td></tr>
+      <tr><td>Explorer</td><td>the job-chat endpoint in the console</td><td><span class="mono">Read Glob Grep</span></td><td>bubblewrap sandbox, <span class="mono">network.allowedDomains: []</span></td><td>Bash disallowed entirely; a pre-tool hook denies by default and refuses any path outside the repo, plus a deny on reading <span class="mono">.env</span> files. Refuses to start unless bwrap and socat are present.</td></tr>
+    </tbody>
+  </table></div>
+  <p class="small" style="margin-top:10px">Codex has no separate system channel, so the role becomes a prompt prefix and the same worktree isolation guard and gate guard apply after the fact. The explorer role has no Codex equivalent.</p>
+</div></section>
+
+<section id="mcp"><div class="wrap">
+  <div class="sec-head">
+    <div><div class="eyebrow">MCP tool catalogue</div><h2 style="margin-top:10px">Thirty-eight tools and the permission each one checks.</h2></div>
+    <p class="lede">Every tool resolves the caller and applies the same membership and permission rules as the console.</p>
+  </div>
+  <div class="widget">
+    <div class="search">
+      <input id="mcpSearch" type="search" placeholder="Filter tools…" aria-label="Filter MCP tools" style="max-width:360px">
+      <button class="chipbtn" data-k="all" aria-pressed="true">All</button>
+      <button class="chipbtn" data-k="read" aria-pressed="false">Read</button>
+      <button class="chipbtn" data-k="jobs" aria-pressed="false">Jobs</button>
+      <button class="chipbtn" data-k="plan" aria-pressed="false">Planning</button>
+      <button class="chipbtn" data-k="ops" aria-pressed="false">Integrations and release</button>
+    </div>
+    <div class="tbl"><table id="mcpTbl"><thead><tr><th>Tool</th><th>Purpose</th><th>Permission</th></tr></thead><tbody></tbody></table></div>
+    <p class="small" id="mcpCount" style="margin-top:10px"></p>
+  </div>
+</div></section>
+
+<section id="deployconfig"><div class="wrap">
+  <div class="sec-head">
+    <div><div class="eyebrow">deploy_config</div><h2 style="margin-top:10px">Every key a project's deployment reads.</h2></div>
+    <p class="lede">Stored as JSON on the project; an environment can override it wholesale.</p>
+  </div>
+  <div class="tbl" style="margin-top:22px"><table>
+    <thead><tr><th>deploy_config key</th><th>Default</th><th>Meaning</th></tr></thead>
+    <tbody>
+      <tr><td>port</td><td class="num">8100 + id</td><td>Loopback port published to the container's 8080; also PORT for compose</td></tr>
+      <tr><td>mem / cpus / network</td><td class="num">256m / 0.5 / bridge</td><td>Container limits and network</td></tr>
+      <tr><td>health_path / health_paths</td><td class="num">/</td><td>Probe path, or a list that must all pass in compose mode</td></tr>
+      <tr><td>http_timeout / http_poll_interval</td><td class="num">30 s / 2 s</td><td>Probe deadline and cadence</td></tr>
+      <tr><td>secrets_dir / appdata_dir</td><td class="num">~/.hyqs/secrets · ~/.hyqs/appdata</td><td>Where the env file and the data bind mount live on the host</td></tr>
+      <tr><td>probe_data_max_bytes</td><td class="num">2 GiB</td><td>Above this, the probe skips the data snapshot</td></tr>
+      <tr><td>web_health_url</td><td class="num">https://slug.example.com</td><td>Public URL gating the platform's own release and shown in runtime health; refused if private or link-local</td></tr>
+      <tr><td>extra_domains</td><td class="num">[]</td><td>Additional vhost domains with a TLS snippet</td></tr>
+      <tr><td>schema_paths</td><td class="num">none</td><td>Extra globs that mark a diff schema-touching and take the merge schema lock</td></tr>
+    </tbody>
+  </table></div>
+</div></section>
+
+<section id="pricing"><div class="wrap">
+  <div class="sec-head">
+    <div><div class="eyebrow">Price table</div><h2 style="margin-top:10px">USD per million tokens, by model and token class.</h2></div>
+    <p class="lede">Longest-prefix matching resolves dated model snapshots. A model absent from the table is priced at zero and flagged, never guessed.</p>
+  </div>
+  <div class="tbl" style="margin-top:22px"><table>
+    <thead><tr><th>Model</th><th>Input</th><th>Output</th><th>Cache write</th><th>Cache read</th></tr></thead>
+    <tbody>
+      <tr><td>claude-opus-5</td><td class="num">$5.00</td><td class="num">$25.00</td><td class="num">$6.25</td><td class="num">$0.50</td></tr>
+      <tr><td>claude-sonnet-5</td><td class="num">$3.00</td><td class="num">$15.00</td><td class="num">$3.75</td><td class="num">$0.30</td></tr>
+      <tr><td>claude-haiku-4-5</td><td class="num">$1.00</td><td class="num">$5.00</td><td class="num">$1.25</td><td class="num">$0.10</td></tr>
+      <tr><td>gpt-5.6-sol (Codex)</td><td class="num">$5.00</td><td class="num">$30.00</td><td class="num">—</td><td class="num">$0.50</td></tr>
+    </tbody>
+  </table></div>
+  <p class="small" style="margin-top:8px">USD per million tokens, from the pipeline's price table. Longest-prefix matching resolves dated model snapshots. A model absent from the table is priced at zero and flagged, never guessed.</p>
+</div></section>
+
+<section id="matrix"><div class="wrap">
+  <div class="sec-head">
+    <div><div class="eyebrow">Permission matrix</div><h2 style="margin-top:10px">Eight roles by twenty-six permissions. Hover a role to read it.</h2></div>
+    <p class="lede">Stored in a table and edited from the console. A platform admin can never remove the five permissions that would lock everyone out.</p>
+  </div>
+  <div class="matrix" id="matrix"></div>
+</div></section>
